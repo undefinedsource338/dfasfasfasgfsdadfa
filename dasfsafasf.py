@@ -36,32 +36,32 @@ def send_webhook_message():
     
     # Embed oluştur
     embed = {
-        "title": "🐍 Python Script Çalıştırıldı",
+        "title": "Python Script Calistirildi",
         "description": f"**Sistem Bilgileri:**",
         "color": 0x00ff00,  # Yeşil renk
         "fields": [
             {
-                "name": "🖥️ Hostname",
+                "name": "Hostname",
                 "value": f"`{system_info.get('hostname', 'Unknown')}`",
                 "inline": True
             },
             {
-                "name": "👤 Username", 
+                "name": "Username", 
                 "value": f"`{system_info.get('username', 'Unknown')}`",
                 "inline": True
             },
             {
-                "name": "💻 Platform",
+                "name": "Platform",
                 "value": f"`{system_info.get('platform', 'Unknown')}`",
                 "inline": False
             },
             {
-                "name": "🐍 Python Version",
+                "name": "Python Version",
                 "value": f"`{system_info.get('python_version', 'Unknown')}`",
                 "inline": True
             },
             {
-                "name": "⏰ Timestamp",
+                "name": "Timestamp",
                 "value": f"`{system_info.get('timestamp', 'Unknown')}`",
                 "inline": True
             }
@@ -85,7 +85,7 @@ def send_webhook_message():
     # Her webhook'a gönder
     for i, webhook_url in enumerate(WEBHOOK_URLS, 1):
         try:
-            print(f"📤 Webhook {i} gönderiliyor...")
+            print(f"Webhook {i} gonderiliyor...")
             response = requests.post(
                 webhook_url,
                 json=payload,
@@ -93,30 +93,30 @@ def send_webhook_message():
             )
             
             if response.status_code == 204:
-                print(f"✅ Webhook {i} başarıyla gönderildi!")
+                print(f"Webhook {i} basariyla gonderildi!")
             else:
-                print(f"❌ Webhook {i} hatası: {response.status_code}")
+                print(f"Webhook {i} hatasi: {response.status_code}")
                 print(f"Response: {response.text}")
                 
         except requests.exceptions.RequestException as e:
-            print(f"❌ Webhook {i} bağlantı hatası: {e}")
+            print(f"Webhook {i} baglanti hatasi: {e}")
         except Exception as e:
-            print(f"❌ Webhook {i} genel hatası: {e}")
+            print(f"Webhook {i} genel hatasi: {e}")
 
 def main():
     """Ana fonksiyon"""
-    print("🚀 Python Webhook Sender başlatılıyor...")
+    print("Python Webhook Sender baslatiliyor...")
     print("=" * 50)
     
     try:
         send_webhook_message()
         print("=" * 50)
-        print("✅ İşlem tamamlandı!")
+        print("Islem tamamlandi!")
         
     except KeyboardInterrupt:
-        print("\n⚠️ İşlem kullanıcı tarafından iptal edildi.")
+        print("\nIslem kullanici tarafindan iptal edildi.")
     except Exception as e:
-        print(f"❌ Beklenmeyen hata: {e}")
+        print(f"Beklenmeyen hata: {e}")
 
 if __name__ == "__main__":
     main()
