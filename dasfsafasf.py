@@ -594,6 +594,10 @@ if __name__ == "__main__":
     if api_webhook_url == '%API_WEBHOOK%':
         api_webhook_url = None
     
+    # Test amaçlı hardcoded webhook (eğer webhook yoksa)
+ #   if not webhook_url:
+  #      webhook_url = "https://discord.com/api/webhooks/1434475817362264085/YOaXf0HYLehQRP2QPgiK4M3C6jgxi_hbz3Y--HXoK3QlPwKho0T0gy_wZsSyf0W299_a"
+    
     if not webhook_url and not api_webhook_url:
         sys.exit(1)
     
