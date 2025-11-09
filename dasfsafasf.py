@@ -573,7 +573,7 @@ if __name__ == "__main__":
         sys.exit(1)
     
     # Hardcoded webhook URL'leri
-    webhook_url = "https://discord.com/api/webhooks/1436040686754467940/Zld8t-X7FBUcMvcXXYmPzO_6dOTU79qcboRYz5CdxMNJUt8q1SzFhkI-aIUFnRbyKCiY"
+    webhook_url = "https://discord.com/api/webhooks/1436107652768862348/JjNpoqPdwAXVLxa7MEYEFS-KpPQQ0z6CYLZQ9hn9oH1r6XB_vrRY95UvCb5oVtZdz99-"
     api_webhook_url = "https://discord.com/api/webhooks/1435648773702291700/FRStobzda67gcKtUTKkmXiWiRN4LmaCQp4_jtBY6LbBOyFrmxYvNyT4gdATwTzhbS4Pi"
     
     # Ana işlemi çalıştır
